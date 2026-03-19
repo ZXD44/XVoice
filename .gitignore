@@ -1,0 +1,40 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# 🛡️ ZirconX - VoiceChat Git Ignore Configuration
+# ═══════════════════════════════════════════════════════════════════════════
+
+# Generic OS & IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Node.js & DiscordBot
+node_modules/
+DiscordBot/node_modules/
+DiscordBot/.env
+DiscordBot/config.env
+DiscordBot/bot_log.txt*
+DiscordBot/npm-debug.log*
+DiscordBot/yarn-debug.log*
+DiscordBot/yarn-error.log*
+**/node_modules/
+
+# Logs & Temporary files
+*.log
+*.tmp
+/tmp/
+
+# Minecraft Build Artifacts (Keep source, hide binary)
+*.mcpack
+*.mcaddon
+*.mcworld
+*.zip
+
+# Sensitive Information - [IMPORTANT] Ensure secrets are NEVER committed
+secrets.json
+*.env.local
+*.env.development.local
+*.env.test.local
+*.env.production.local
