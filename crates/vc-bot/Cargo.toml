@@ -1,0 +1,33 @@
+[package]
+name = "vc-bot"
+description = "ZirconX VoiceChat backend: HTTP ingest + Discord room orchestrator"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "zircon-voice"
+path = "src/main.rs"
+
+[dependencies]
+vc-core = { path = "../vc-core" }
+anyhow.workspace = true
+axum.workspace = true
+futures.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+subtle.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+dotenvy = "0.15"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+serenity = { version = "0.12", default-features = false, features = [
+    "client",
+    "gateway",
+    "model",
+    "cache",
+    "http",
+    "rustls_backend",
+] }
