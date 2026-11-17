@@ -160,6 +160,21 @@ impl EventHandler for Handler {
             return;
         }
 
+        if lower == "!pair" || lower == "!จับคู่" {
+            // สร้างรหัส OTP 6 หลัก
+            use std::time::{Duration, Instant};
+            let code = format!("{:06}", (std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos() % 900000 + 100000) as u32);
+            let expires = Instant::now() + Duration::from_secs(300);
+
+            *self.bridge.state.pair_code.lock().unwrap() = Some((code.clone(), expires));
+            let reply = format!(
+                "🔗 **รหัสจับคู่เซิร์ฟเวอร์เกม (Auto-Pairing Code)**: `{}`\n(รหัสมีอายุ 5 นาที นำไปพิมพ์ในเกมผ่านเมนูแอดมิน !vc หรือพิมพ์ `/scriptevent vc:pair {}`)",
+                code, code
+            );
+            let _ = self.bridge.api.send_message(message.channel_id.get(), json!({ "content": reply })).await;
+            return;
+        }
+
         let Some(admin) = self.bridge.cfg.admin_channel_id else {
             return;
         };

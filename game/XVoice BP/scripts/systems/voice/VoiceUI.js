@@ -174,6 +174,17 @@ export class VoiceUI {
         );
         form.spacer();
 
+        form.button("จับคู่ด้วยรหัส\nAuto-Pairing Code", () => {
+            form.close();
+            system.run(() => {
+                player.sendMessage("§e[ระบบเสียง] ขั้นตอนจับคู่อัตโนมัติ:");
+                player.sendMessage("§f 1. เข้าห้องแชต Discord แล้วพิมพ์คำสั่ง: §b!pair");
+                player.sendMessage("§f 2. นำรหัส 6 หลักมาพิมพ์ในเกม: §a/scriptevent vc:pair <รหัส>");
+                player.onScreenDisplay.setActionBar("§eพิมพ์ !pair ใน Discord แล้วใช้ /scriptevent vc:pair");
+            });
+        });
+        form.spacer();
+
         form.button("สุ่มรหัสลับใหม่\nAuto-Generate Secret", () => {
             form.close();
             system.run(() => {

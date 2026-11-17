@@ -6,6 +6,7 @@ import { world, system } from "@minecraft/server";
 import { ITEM_ID, LEGACY_ITEM_ID, forgetProps } from "./VoiceConfig.js";
 import { showSettings, checkDiscordStatus } from "./VoiceUI.js";
 import { giveRemote } from "./VoiceNewbie.js";
+import { postJson } from "./VoiceNetwork.js";
 
 export function registerVoiceCommands() {
     // 1. ใช้งานไอเทมรีโมท (ศูนย์ควบคุมหลัก UI V2 — พร้อม Debounce ป้องกันเปิดซ้อน)
@@ -24,12 +25,44 @@ export function registerVoiceCommands() {
         showSettings(player);
     });
 
-    // 2. คำสั่ง scriptevent สำหรับแอดมินหรือระบบทดสอบ (/scriptevent vc:ui)
+    // 2. คำสั่ง scriptevent สำหรับแอดมินหรือระบบทดสอบ (/scriptevent vc:ui หรือ vc:pair <รหัส>)
     system.afterEvents.scriptEventReceive.subscribe((event) => {
         const id = event.id.toLowerCase();
-        if (id !== "voice:ui" && id !== "voice:menu" && id !== "vc:ui" && id !== "vc:menu" && id !== "vc:get") return;
+        if (id !== "voice:ui" && id !== "voice:menu" && id !== "vc:ui" && id !== "vc:menu" && id !== "vc:get" && id !== "vc:pair") return;
         const player = event.sourceEntity;
         if (player?.typeId !== "minecraft:player" || !player.isValid) return;
+
+        if (id === "vc:pair") {
+            if (!player.hasTag("admin")) {
+                player.sendMessage("§c[ระบบเสียง] เฉพาะผู้ดูแล (Admin) เท่านั้นที่สามารถใช้คำสั่งนี้ได้");
+                return;
+            }
+            const code = event.message ? event.message.trim() : "";
+            if (!code || code.length !== 6) {
+                player.sendMessage("§e[ระบบเสียง] วิธีใช้: /scriptevent vc:pair <รหัส 6 หลักจาก Discord>");
+                return;
+            }
+
+            system.run(async () => {
+                player.onScreenDisplay.setActionBar("§eกำลังเชื่อมต่อจับคู่กับบอท...");
+                try {
+                    const res = await postJson("/api/pair/verify", { code });
+                    if (res.status === 200 && res.data?.secret) {
+                        world.setDynamicProperty("apiSecret", res.data.secret);
+                        player.sendMessage("§a[ระบบเสียง] จับคู่กับ Discord Bot สำเร็จเรียบร้อยแล้ว!");
+                        player.sendMessage(`§8• บันทึกรหัสลับ: §e${res.data.secret}`);
+                        player.onScreenDisplay.setActionBar("§a✔ จับคู่สำเร็จ!");
+                    } else {
+                        player.sendMessage("§c[ระบบเสียง] ไม่สามารถจับคู่ได้: รหัสไม่ถูกต้องหรือหมดอายุแล้ว");
+                        player.onScreenDisplay.setActionBar("§c✗ จับคู่ล้มเหลว");
+                    }
+                } catch {
+                    player.sendMessage("§c[ระบบเสียง] เชื่อมต่อกับ Backend บอทไม่สำเร็จ");
+                    player.onScreenDisplay.setActionBar("§c✗ เชื่อมต่อบอทไม่ได้");
+                }
+            });
+            return;
+        }
 
         if (id === "vc:get") {
             giveRemote(player, true);

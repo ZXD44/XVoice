@@ -26,6 +26,8 @@ pub fn router(state: Arc<AppState>) -> Router {
         .route("/api/check", post(check))
         .route("/api/unmute", post(unmute))
         .route("/api/reset", post(reset))
+        .route("/api/pair/request", post(pair_request))
+        .route("/api/pair/verify", post(pair_verify))
         .route("/api/health", get(health))
         .with_state(state)
 }
@@ -196,6 +198,51 @@ async fn reset(
     };
 
     Json(payload).into_response()
+}
+
+#[derive(Deserialize)]
+struct PairVerifyRequest {
+    code: String,
+}
+
+/// สร้าง OTP 6 หลักสำหรับจับคู่ (เรียกจากคำสั่งใน Discord หรือแอดมิน)
+async fn pair_request(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    use std::time::{Duration, Instant};
+    // สุ่มเลข 6 หลัก 100000 - 999999
+    let code = format!("{:06}", (std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos() % 900000 + 100000) as u32);
+    let expires = Instant::now() + Duration::from_secs(300); // 5 นาที
+
+    *state.pair_code.lock().unwrap() = Some((code.clone(), expires));
+    tracing::info!(code = %code, "สร้างรหัสจับคู่ Pairing Code สำเร็จ (อายุ 5 นาที)");
+
+    Json(json!({
+        "status": "ok",
+        "code": code,
+        "expires_in": 300
+    }))
+}
+
+/// เกมส่งรหัส OTP 6 หลักมาขอรับ API_SECRET
+async fn pair_verify(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<PairVerifyRequest>,
+) -> impl IntoResponse {
+    use std::time::Instant;
+    let mut lock = state.pair_code.lock().unwrap();
+    if let Some((stored_code, expires)) = lock.take() {
+        if Instant::now() <= expires && stored_code == req.code.trim() {
+            tracing::info!("เกมตรวจสอบรหัสจับคู่ถูกต้อง -> ส่งมอบ API_SECRET สำเร็จ");
+            return Json(json!({
+                "status": "ok",
+                "secret": state.cfg.api_secret
+            })).into_response();
+        }
+    }
+
+    (StatusCode::BAD_REQUEST, Json(json!({
+        "status": "error",
+        "message": "รหัสจับคู่ไม่ถูกต้องหรือหมดอายุแล้ว"
+    }))).into_response()
 }
 
 async fn health(State(state): State<Arc<AppState>>) -> impl IntoResponse {
