@@ -94,6 +94,9 @@ pub struct PlayerSample {
     pub verified: bool,
     #[serde(default)]
     pub discord_id: Option<u64>,
+    /// ช่องคลื่นวิทยุสื่อสาร Walkie-Talkie (0 = ปิด / โหมด Proximity ปกติ, 1-9 = ช่องวิทยุ)
+    #[serde(default)]
+    pub radio_channel: u8,
 }
 
 impl PlayerSample {
