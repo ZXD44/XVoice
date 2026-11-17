@@ -11,6 +11,7 @@ import {
 } from "@minecraft/server-ui";
 import {
     getConfig,
+    generateShortSecret,
     MIN_RADIUS,
     MAX_RADIUS,
     PARTICLE_OPTIONS,
@@ -168,9 +169,22 @@ export class VoiceUI {
         form.label(
             `§8• ไอพีปัจจุบัน: §e${cfg.ip}\n` +
             `§8• พอร์ตปัจจุบัน: §e${cfg.port}\n` +
-            `§8• รหัสลับ: §7********\n` +
+            `§8• รหัสลับปัจจุบัน: §a${cfg.secret}\n` +
             `§8• ค่ามาตรฐาน: §7127.0.0.1:3000`
         );
+        form.spacer();
+
+        form.button("สุ่มรหัสลับใหม่\nAuto-Generate Secret", () => {
+            form.close();
+            system.run(() => {
+                const newSecret = generateShortSecret();
+                world.setDynamicProperty("apiSecret", newSecret);
+                player.sendMessage(`§a[ระบบเสียง] §fสุ่มรหัสลับใหม่แล้ว: §e${newSecret}`);
+                player.sendMessage("§8• อย่าลืมนำรหัสนี้ไปใส่ใน API_SECRET ของ config.env ในบอท");
+                player.onScreenDisplay.setActionBar(`§a✔ สุ่มรหัสใหม่: §e${newSecret}`);
+                this.openAdmin(player);
+            });
+        });
         form.spacer();
 
         form.button("รีเซ็ตเป็นค่าเดิม\nล้างการตั้งค่าแอดมิน", () => {

@@ -18,6 +18,15 @@ export const DEFAULT_IP = "127.0.0.1";
 export const DEFAULT_PORT = "3000";
 export const DEFAULT_SECRET = "mcpe-voice-secret-zirconx";
 
+export function generateShortSecret(length = 8) {
+    const chars = "abcdefghjkmnpqrstuvwxyz23456789";
+    let res = "xv-";
+    for (let i = 0; i < length; i++) {
+        res += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return res;
+}
+
 export const PARTICLE_OPTIONS = [
     { name: "§dซากุระร่วง", id: "minecraft:cherry_leaves_particle" },
     { name: "§cหัวใจสีแดง", id: "minecraft:heart_particle" },
