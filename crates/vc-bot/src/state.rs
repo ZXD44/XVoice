@@ -36,6 +36,8 @@ pub struct AppState {
     pub seq: AtomicU64,
     pub bot_online: AtomicBool,
     pub last_update: Mutex<Option<Update>>,
+    /// รหัส OTP สำหรับจับคู่ระหว่าง Discord และ เกม (code, expires_at)
+    pub pair_code: Mutex<Option<(String, Instant)>>,
     /// Layouts handed to the worker but not committed yet.
     in_flight: AtomicUsize,
 }
@@ -64,6 +66,7 @@ impl AppState {
             seq: AtomicU64::new(0),
             bot_online: AtomicBool::new(false),
             last_update: Mutex::new(None),
+            pair_code: Mutex::new(None),
             in_flight: AtomicUsize::new(0),
         })
     }
