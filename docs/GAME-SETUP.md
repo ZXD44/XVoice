@@ -1,4 +1,4 @@
-# 🎙️ Zircon Voice Chat - Proximity System (v4.1 Next-Gen)
+# 🎙️ XVoice - Proximity System (v4.1 Next-Gen)
 
 ### ระบบเสียงตามระยะ (Proximity Voice Chat) สำหรับ Minecraft Bedrock
 **พัฒนาโดย:** ZirconX

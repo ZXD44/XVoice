@@ -1,9 +1,9 @@
-# 🎙️ Zircon VoiceChat v4.1 (Next-Gen Proximity System)
+# 🎙️ XVoice v4.1 (Next-Gen Proximity System)
 
 > ระบบเสียงตามระยะ (Proximity Voice Chat) ความเร็วสูง สำหรับ **Minecraft Bedrock Dedicated Server + Discord**  
 > สถาปัตยกรรมใหม่ ขับเคลื่อนด้วย **Rust Backend (High Performance)** และ **Bedrock Script API**
 
-[![Version](https://img.shields.io/badge/Version-v4.1.0_Next--Gen-blue?style=for-the-badge&logo=rust)](https://github.com/ZXD44/VoiceChat-ZXD44)
+[![Version](https://img.shields.io/badge/Version-v4.1.0_Next--Gen-blue?style=for-the-badge&logo=rust)](https://github.com/ZXD44/XVoice)
 [![Minecraft Bedrock](https://img.shields.io/badge/Minecraft-Bedrock_BDS_Only-green?style=for-the-badge&logo=minecraft)](https://www.minecraft.net/download/server/bedrock)
 [![Discord API](https://img.shields.io/badge/Discord-Gateway_&_REST-5865F2?style=for-the-badge&logo=discord)](https://discord.com)
 
@@ -39,7 +39,7 @@ flowchart LR
 ```
 
 ```text
-VoiceChat-ZXD44/
+XVoice/
 ├── crates/
 │   ├── vc-bot/               # Rust Discord Bot Worker & REST Server
 │   └── vc-core/              # Proximity Grid Engine & Clustering Algorithm
