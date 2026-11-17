@@ -60,16 +60,57 @@ export function setBotAlive(alive) {
     console.warn(`[VoiceChat] Bot status: ${alive ? "ONLINE" : "OFFLINE"}`);
 }
 
+/**
+ * ตรวจสอบสิ่งกีดขวาง (Occlusion Check) บริเวณระดับสายตาของผู้เล่น
+ * หากมีบล็อกทึบกั้น จะลดรัศมีเสียงลง 40% (dampening) เพื่อความสมจริง
+ */
+export function calculateOcclusionRadius(player, baseRadius) {
+    try {
+        const dim = player.dimension;
+        if (!dim) return baseRadius;
+
+        const headLoc = player.getHeadLocation ? player.getHeadLocation() : player.location;
+        // ตรวจสอบบล็อกทึบรอบศีรษะ 4 ทิศ (แกน X, Z ห่าง 1.2 บล็อก)
+        const checkOffsets = [
+            { x: 1.2, y: 0, z: 0 },
+            { x: -1.2, y: 0, z: 0 },
+            { x: 0, y: 0, z: 1.2 },
+            { x: 0, y: 0, z: -1.2 },
+            { x: 0, y: 1.5, z: 0 } // เพดาน
+        ];
+
+        let solidCount = 0;
+        for (const offset of checkOffsets) {
+            const block = dim.getBlock({
+                x: Math.floor(headLoc.x + offset.x),
+                y: Math.floor(headLoc.y + offset.y),
+                z: Math.floor(headLoc.z + offset.z)
+            });
+            if (block && !block.isAir && !block.isLiquid) {
+                solidCount++;
+            }
+        }
+
+        // หากอยู่ในห้องปิด/มีกำแพงล้อมรอบ 3 ทิศขึ้นไป ลดรัศมีเสียงลง (Dampened)
+        if (solidCount >= 3) {
+            return Math.max(3, Math.round(baseRadius * 0.6 * 10) / 10);
+        }
+    } catch {}
+    return baseRadius;
+}
+
 export function samplePlayer(player) {
     const location = player.location;
     const props = cachedProps(player);
+    const effectiveRadius = calculateOcclusionRadius(player, props.radius);
+
     return {
         name: player.name,
         dimension: player.dimension?.id ?? "minecraft:overworld",
         x: Math.round(location.x * 100) / 100,
         y: Math.round(location.y * 100) / 100,
         z: Math.round(location.z * 100) / 100,
-        radius: props.radius,
+        radius: effectiveRadius,
         enabled: props.enabled,
         verified: props.verified
     };
