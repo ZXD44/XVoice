@@ -1,9 +1,43 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// 🎙️ VoiceNetwork.js — จัดการ HTTP REST API ฝั่งเกม
+// 🎙️ VoiceNetwork.js — จัดการ HTTP REST API ฝั่งเกม พร้อม Circuit Breaker
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { http, HttpHeader, HttpRequest, HttpRequestMethod } from "@minecraft/server-net";
 import { getConfig, HTTP_TIMEOUT } from "./VoiceConfig.js";
+
+/**
+ * สถานะของ Circuit Breaker เพื่อป้องกันการสแปม Request และลดโหลด BDS เมื่อบอทปิด
+ */
+export const circuitState = {
+    failures: 0,
+    isOpen: false,
+    nextTryTick: 0
+};
+
+export function canAttemptRequest(currentTick) {
+    if (!circuitState.isOpen) return true;
+    if (currentTick >= circuitState.nextTryTick) {
+        // ให้โอกาสลองใหม่ (Half-Open)
+        return true;
+    }
+    return false;
+}
+
+export function recordSuccess() {
+    circuitState.failures = 0;
+    circuitState.isOpen = false;
+    circuitState.nextTryTick = 0;
+}
+
+export function recordFailure(currentTick) {
+    circuitState.failures++;
+    if (circuitState.failures >= 3) {
+        circuitState.isOpen = true;
+        // Exponential Backoff: พลาด 3 ครั้ง พัก 5 วิ (100 ticks), พลาดมากขึ้นพักสูงสุด 15 วิ (300 ticks)
+        const backoffTicks = Math.min(300, 100 + (circuitState.failures - 3) * 40);
+        circuitState.nextTryTick = currentTick + backoffTicks;
+    }
+}
 
 export function getEndpoint(path) {
     const cfg = getConfig();

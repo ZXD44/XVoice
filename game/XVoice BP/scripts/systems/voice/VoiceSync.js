@@ -5,7 +5,7 @@
 import { world, system } from "@minecraft/server";
 import { HttpRequestMethod } from "@minecraft/server-net";
 import { SYNC_INTERVAL, HEARTBEAT_INTERVAL, cachedProps, playerKey } from "./VoiceConfig.js";
-import { postJson, request } from "./VoiceNetwork.js";
+import { postJson, request, canAttemptRequest, recordSuccess, recordFailure } from "./VoiceNetwork.js";
 
 export const voiceState = {
     syncing: false,
@@ -79,6 +79,12 @@ export function startSyncLoop() {
     system.runInterval(() => {
         if (voiceState.syncing) return;
 
+        const currentTick = system.currentTick;
+        if (!canAttemptRequest(currentTick)) {
+            // อยู่ในโหมดพัก Backoff เพื่อประหยัด CPU เมื่อบอทออฟไลน์
+            return;
+        }
+
         let snapshot;
         try {
             const players = world.getPlayers().filter((player) => player?.isValid);
@@ -95,18 +101,24 @@ export function startSyncLoop() {
                         voiceState.secretBad = true;
                         console.warn("[VoiceChat] API Secret mismatch!");
                     }
+                    recordFailure(currentTick);
                     return;
                 }
                 if (status !== 200 || !data) {
+                    recordFailure(currentTick);
                     setBotAlive(false);
                     return;
                 }
+                recordSuccess();
                 voiceState.secretBad = false;
                 setBotAlive(true);
                 voiceState.connected = new Set((data.connected ?? []).map(playerKey));
                 refreshNametags();
             })
-            .catch(() => setBotAlive(false))
+            .catch(() => {
+                recordFailure(currentTick);
+                setBotAlive(false);
+            })
             .finally(() => {
                 voiceState.syncing = false;
             });
