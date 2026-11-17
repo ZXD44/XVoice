@@ -47,12 +47,15 @@ export class VoiceUI {
 
         form.header("ศูนย์ควบคุมและตรวจสอบ");
 
+        const radioStatus = props.radioChannel > 0 ? `§eช่องสัญญาณ ${props.radioChannel}` : "§7ปิดการใช้งาน";
+
         // 2. แสดงแดชบอร์ดสรุปสถานะปัจจุบัน (Label รองรับโค้ดสี §)
         form.label(
             `§b§l[ ข้อมูลการเชื่อมต่อ ]\n` +
             `§8• ตัวละคร: §f${player.name}\n` +
             `§8• เซิร์ฟเวอร์บอท: ${botStatus}\n` +
             `§8• สถานะ Discord: ${discordText}\n` +
+            `§8• วิทยุสื่อสาร: ${radioStatus}\n` +
             `§8• สถานะไมค์: ${props.enabled ? "§aเปิดใช้งาน" : "§cปิดใช้งาน"} §8(ระยะ ${props.radius} บล็อก)`
         );
 
@@ -64,6 +67,7 @@ export class VoiceUI {
         const enabledObs = new ObservableBoolean(props.enabled, { clientWritable: true });
         const radiusObs = new ObservableNumber(props.radius, { clientWritable: true });
         const particleObs = new ObservableNumber(props.particle, { clientWritable: true });
+        const radioObs = new ObservableNumber(props.radioChannel, { clientWritable: true });
 
         // Toggle: เปิด/ปิดระบบเสียง
         form.toggle("1. เปิดใช้งานระบบเสียง", enabledObs, {
@@ -78,12 +82,26 @@ export class VoiceUI {
         });
         form.spacer();
 
+        // Dropdown: วิทยุสื่อสาร (Walkie-Talkie Channel)
+        const radioItems = [
+            { label: "ปิดวิทยุ (คุยเฉพาะใกล้ตัว)", value: 0 },
+            { label: "ช่อง 1 (คลื่นสาธารณะ)", value: 1 },
+            { label: "ช่อง 2 (คลื่นทีม A)", value: 2 },
+            { label: "ช่อง 3 (คลื่นทีม B)", value: 3 },
+            { label: "ช่อง 4 (คลื่นกิจกรรม)", value: 4 },
+            { label: "ช่อง 5 (คลื่นเฉพาะกิจ)", value: 5 }
+        ];
+        form.dropdown("3. คลื่นวิทยุสื่อสาร", radioObs, radioItems, {
+            description: "คุยกับเพื่อนที่ตั้งช่องเดียวกันได้ทุกระยะทาง"
+        });
+        form.spacer();
+
         // Dropdown: เลือกเอฟเฟกต์วงกลม
         const particleItems = PARTICLE_OPTIONS.map((opt, idx) => ({
             label: opt.name.replace(/§[0-9a-fk-or]/gi, ""),
             value: idx
         }));
-        form.dropdown("3. เอฟเฟกต์วงกลมระยะเสียง", particleObs, particleItems, {
+        form.dropdown("4. เอฟเฟกต์วงกลมระยะเสียง", particleObs, particleItems, {
             description: "เลือกอนุภาคที่แสดงรอบตัวขณะถือรีโมทในมือ"
         });
 
@@ -127,14 +145,17 @@ export class VoiceUI {
             const newEnabled = enabledObs.getData();
             const newRadius = clampRadius(radiusObs.getData());
             const newParticle = particleIndex(particleObs.getData());
+            const newRadio = Math.max(0, Math.min(5, Math.floor(radioObs.getData())));
 
             player.setDynamicProperty("isVoiceEnabled", newEnabled);
             player.setDynamicProperty("voiceRadius", newRadius);
             player.setDynamicProperty("voiceParticle", newParticle);
+            player.setDynamicProperty("voiceRadioChannel", newRadio);
             forgetProps(player.id);
             refreshNametags();
 
-            player.onScreenDisplay.setActionBar(`§a✔ บันทึกแล้ว (ระยะ ${newRadius} บล็อก)`);
+            const radioNotice = newRadio > 0 ? ` + วิทยุช่อง ${newRadio}` : "";
+            player.onScreenDisplay.setActionBar(`§a✔ บันทึกแล้ว (ระยะ ${newRadius} บล็อก${radioNotice})`);
             form.close();
         });
         form.spacer();

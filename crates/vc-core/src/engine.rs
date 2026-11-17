@@ -131,6 +131,12 @@ impl Engine {
         for i in 0..players.len() {
             let a = players[i];
             for b in players.iter().skip(i + 1) {
+                // หากทั้งสองคนเปิดวิทยุสื่อสารและตั้งคลื่นวิทยุตรงกัน (ช่อง 1-9) จะได้ยินกันทันทีโดยไม่จำกัดระยะทางหรือมิติ
+                if a.radio_channel > 0 && a.radio_channel == b.radio_channel {
+                    candidates.insert(PairKey::new(&a.name, &b.name));
+                    continue;
+                }
+
                 if a.dimension != b.dimension {
                     continue;
                 }

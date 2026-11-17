@@ -80,6 +80,7 @@ export function cachedProps(player) {
         enabled: player.getDynamicProperty("isVoiceEnabled") ?? true,
         radius: clampRadius(player.getDynamicProperty("voiceRadius")),
         particle: particleIndex(player.getDynamicProperty("voiceParticle")),
+        radioChannel: Number(player.getDynamicProperty("voiceRadioChannel") ?? 0),
         verified: player.getDynamicProperty("isDiscordVerified") ?? false,
         at: now
     };

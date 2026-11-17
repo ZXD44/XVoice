@@ -112,7 +112,8 @@ export function samplePlayer(player) {
         z: Math.round(location.z * 100) / 100,
         radius: effectiveRadius,
         enabled: props.enabled,
-        verified: props.verified
+        verified: props.verified,
+        radio_channel: props.radioChannel
     };
 }
 
