@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// 🎙️ VoiceNewbie.js — ระบบแจกอุปกรณ์รีโมทตรวจสอบและตั้งค่าไมค์ (UI V2)
+// VoiceNewbie.js — ระบบแจกอุปกรณ์รีโมทตรวจสอบและตั้งค่าไมค์ (UI V2)
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { world, system } from "@minecraft/server";
@@ -24,8 +24,8 @@ export function giveRemote(player, notify = true) {
     try {
         player.runCommand(`give @s ${ITEM_ID} 1`);
         if (notify) {
-            player.sendMessage("§a[ระบบเสียง] §fได้รับไอเทม §bรีโมทดิสคอร์ด §fแล้ว");
-            player.sendMessage("§7> วิธีใช้: ถือไอเทมแล้วกดใช้ §8(มือถือ: กดค้าง / คอม: คลิกขวา)");
+            player.sendMessage("§b[ระบบเสียง] §fได้รับ §bรีโมทดิสคอร์ด §fเรียบร้อย");
+            player.sendMessage("§8• ถือไอเทมแล้วกดใช้เพื่อเปิดเมนูตั้งค่าไมค์");
         }
         return true;
     } catch {
@@ -42,11 +42,8 @@ function setupNewPlayer(player) {
 
     if (!player.hasTag(NEWBIE_TAG)) {
         player.addTag(NEWBIE_TAG);
-        player.sendMessage("§7────────────────────────────────────────");
-        player.sendMessage("§e§l🎙️ ยินดีต้อนรับสู่ระบบเสียงตามระยะ (ZirconX VoiceChat)");
-        player.sendMessage("§7> รับไอเทม §bรีโมทดิสคอร์ด §7ในกระเป๋าของคุณ");
-        player.sendMessage("§7> ถือแล้วกดใช้ §8(มือถือ: กดค้าง / คอม: คลิกขวา) §7เพื่อเปิดแผงควบคุม UI V2");
-        player.sendMessage("§7────────────────────────────────────────");
+        player.sendMessage("§b[ระบบเสียง] §fได้รับ §bรีโมทดิสคอร์ด §fในกระเป๋า");
+        player.sendMessage("§8• ถือไอเทมแล้วกดใช้เพื่อเปิดเมนูตั้งค่าไมค์");
     }
 }
 

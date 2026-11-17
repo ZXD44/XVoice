@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// 🎙️ ZirconX VoiceChat v4.1 — Master Entrypoint (Modular Architecture)
+// ZirconX VoiceChat v4.1 — Master Entrypoint (Modular Architecture)
 // ═══════════════════════════════════════════════════════════════════════════
 // ระบบย่อยทั้งหมดถูกแยกออกเป็นโมดูลสะอาดตา (ต่ำกว่า 150 บรรทัดทุกไฟล์):
 //   * systems/voice/VoiceConfig.js    — ค่าคงที่และการแคชคุณสมบัติ
@@ -7,7 +7,7 @@
 //   * systems/voice/VoiceSync.js      — วงรอบซิงก์ตำแหน่ง 1 วิ & Nametag
 //   * systems/voice/VoiceParticles.js — แสดงผลวงกลมรัศมีเสียง
 //   * systems/voice/VoiceUI.js        — เมนูตั้งค่าและตรวจสถานะ Discord
-//   * systems/voice/VoiceCommands.js  — ดักฟังแชตและอีเวนต์รีโมท
+//   * systems/voice/VoiceCommands.js  — ดักฟังการใช้งานไอเทมรีโมท
 //   * systems/voice/VoiceNewbie.js    — ระบบแจกของแบบปลอดภัย
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -24,7 +24,7 @@ registerVoiceCommands();
 registerNewbieEvents();
 
 console.warn("──────────────────────────────────────────────────");
-console.warn("  🎙️ ZirconX VoiceChat v4.1 (Modular Engine Loaded)");
+console.warn("  ZirconX VoiceChat v4.1 (Modular Engine Loaded)");
 console.warn("  • Fast Sync • Account Linking • In-Game Unmute");
-console.warn("  • Chat Commands: !vc / !mic เพื่อเปิดเมนู");
+console.warn("  • ใช้ไอเทมรีโมทดิสคอร์ดในการควบคุมและตั้งค่า UI");
 console.warn("──────────────────────────────────────────────────");

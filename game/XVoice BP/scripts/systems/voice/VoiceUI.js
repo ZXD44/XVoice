@@ -42,7 +42,7 @@ export class VoiceUI {
         }
 
         // 1. หัวข้อหลัก (Title Header รองรับโค้ดสี §)
-        const form = new CustomForm(player, "§b§lรีโมทระบบเสียง (VoiceChat)");
+        const form = new CustomForm(player, "§b§lรีโมทระบบเสียง");
 
         form.header("ศูนย์ควบคุมและตรวจสอบ");
 
@@ -95,7 +95,7 @@ export class VoiceUI {
         form.button("ตรวจสอบสถานะ\nเช็กการเชื่อมต่อ", () => {
             form.close();
             system.run(async () => {
-                player.onScreenDisplay.setActionBar("§e🔄 กำลังตรวจสอบการเชื่อมต่อ...");
+                player.onScreenDisplay.setActionBar("§e[ระบบเสียง] §fกำลังตรวจสอบการเชื่อมต่อ...");
                 await checkDiscordStatus(player);
                 VoiceUI.open(player);
             });
@@ -240,7 +240,7 @@ export async function checkDiscordStatus(player) {
         default:
             player.setDynamicProperty("isDiscordVerified", false);
             player.onScreenDisplay.setActionBar("§c✗ ยังไม่ได้ผูกบัญชี Discord");
-            player.sendMessage("§e[ระบบเสียง] §7เข้า Discord แล้วกดปุ่ม §a[ 🔗 ผูกบัญชีตัวละคร ] §7เพื่อเริ่มพูดคุย");
+            player.sendMessage("§e[ระบบเสียง] §7เข้า Discord แล้วกดปุ่ม §a[ ผูกบัญชีตัวละคร ] §7เพื่อเริ่มพูดคุย");
             break;
     }
     refreshNametags();

@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// 🎙️ VoiceCommands.js — การดักฟังการใช้งานไอเทมรีโมทและคำสั่งแชตรองรับ
+// VoiceCommands.js — การดักฟังการใช้งานไอเทมรีโมทและระบบควบคุม UI V2
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { world, system } from "@minecraft/server";
@@ -24,34 +24,21 @@ export function registerVoiceCommands() {
         showSettings(player);
     });
 
-    // 2. คำสั่งแชตรองรับสำรอง: !vc, !mic, !voice, !ไมค์, !เสียง
-    world.beforeEvents.chatSend.subscribe((event) => {
-        const msg = event.message.trim().toLowerCase();
-        if (msg === "!vc" || msg === "!mic" || msg === "!voice" || msg === "!ไมค์" || msg === "!เสียง") {
-            event.cancel = true;
-            system.run(() => showSettings(event.sender));
-            return;
-        }
-        if (msg === "!vc get" || msg === "!vc item" || msg === "!ไมค์ ไอเทม") {
-            event.cancel = true;
-            system.run(() => giveRemote(event.sender, true));
-            return;
-        }
-        if (msg === "!vc link" || msg === "!link" || msg === "!vc check" || msg === "!สถานะ") {
-            event.cancel = true;
-            system.run(() => checkDiscordStatus(event.sender).catch(() => {}));
-            return;
-        }
-    });
-
-    // 3. คำสั่ง scriptevent voice:ui
+    // 2. คำสั่ง scriptevent สำหรับแอดมินหรือระบบทดสอบ (/scriptevent vc:ui)
     system.afterEvents.scriptEventReceive.subscribe((event) => {
-        if (event.id !== "voice:ui") return;
+        const id = event.id.toLowerCase();
+        if (id !== "voice:ui" && id !== "voice:menu" && id !== "vc:ui" && id !== "vc:menu" && id !== "vc:get") return;
         const player = event.sourceEntity;
-        if (player?.typeId === "minecraft:player") showSettings(player);
+        if (player?.typeId !== "minecraft:player" || !player.isValid) return;
+
+        if (id === "vc:get") {
+            giveRemote(player, true);
+        } else {
+            showSettings(player);
+        }
     });
 
-    // 4. เข้าเกมครั้งแรกในเซสชัน -> ตรวจสอบ Discord
+    // 3. เข้าเกมครั้งแรกในเซสชัน -> ตรวจสอบ Discord
     world.afterEvents.playerSpawn.subscribe((event) => {
         if (!event.initialSpawn) return;
         const player = event.player;
@@ -60,7 +47,7 @@ export function registerVoiceCommands() {
         }, 40);
     });
 
-    // 5. ออกจากเกม -> ล้างแคช
+    // 4. ออกจากเกม -> ล้างแคช
     world.afterEvents.playerLeave.subscribe((event) => {
         try {
             lastOpenTick.delete(event.playerId);
