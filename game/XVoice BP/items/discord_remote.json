@@ -13,7 +13,7 @@
                 "texture": "discord_remote"
             },
             "minecraft:display_name": {
-                "value": "§b§lรีโมทดิสคอร์ด"
+                "value": "§bรีโมทดิสคอร์ด"
             },
             "minecraft:max_stack_size": 1,
             "minecraft:hand_equipped": true,
