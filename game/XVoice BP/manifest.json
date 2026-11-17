@@ -1,12 +1,12 @@
 {
     "format_version": 2,
     "header": {
-        "description": "§eระบบเสียงตามระยะ XVoice (v4)\n§7สร้างโดย ZirconX",
+        "description": "§eระบบเสียงตามระยะ XVoice (v4.2.0)\n§7สร้างโดย ZirconX",
         "name": "XVoice BP",
         "uuid": "5f9e8d7c-3b2a-4a1e-9d8c-7b6a5f4e3d2c",
         "version": [
             4,
-            0,
+            2,
             0
         ],
         "min_engine_version": [
@@ -22,7 +22,7 @@
             "uuid": "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
             "version": [
                 4,
-                0,
+                2,
                 0
             ],
             "entry": "scripts/main.js"
@@ -33,7 +33,7 @@
             "uuid": "2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e",
             "version": [
                 4,
-                0,
+                2,
                 0
             ]
         }
@@ -55,8 +55,8 @@
             "uuid": "a1b2c3d4-e5f6-4a1b-9c8d-7e6f5a4b3c2d",
             "version": [
                 4,
-                0,
-                4
+                2,
+                0
             ]
         }
     ],

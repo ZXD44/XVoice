@@ -1,9 +1,9 @@
-# 🎙️ XVoice v4.1 (Next-Gen Proximity System)
+# 🎙️ XVoice v4.2.0 (Advanced Proximity & Radio Engine)
 
 > ระบบเสียงตามระยะ (Proximity Voice Chat) ความเร็วสูง สำหรับ **Minecraft Bedrock Dedicated Server + Discord**  
 > สถาปัตยกรรมใหม่ ขับเคลื่อนด้วย **Rust Backend (High Performance)** และ **Bedrock Script API**
 
-[![Version](https://img.shields.io/badge/Version-v4.1.0_Next--Gen-blue?style=for-the-badge&logo=rust)](https://github.com/ZXD44/XVoice)
+[![Version](https://img.shields.io/badge/Version-v4.2.0_Latest-blue?style=for-the-badge&logo=rust)](https://github.com/ZXD44/XVoice)
 [![Minecraft Bedrock](https://img.shields.io/badge/Minecraft-Bedrock_BDS_Only-green?style=for-the-badge&logo=minecraft)](https://www.minecraft.net/download/server/bedrock)
 [![Discord API](https://img.shields.io/badge/Discord-Gateway_&_REST-5865F2?style=for-the-badge&logo=discord)](https://discord.com)
 
@@ -14,6 +14,14 @@
 * 🦀 **Rust High-Performance Core (`crates/vc-bot`, `crates/vc-core`)**:
   - พัฒนาด้วย **Rust 100%** ทรงพลัง ประสิทธิภาพสูง กินแรมต่ำ Latency ต่ำพิเศษ
   - อัลกอริทึมคำนวณระยะ Proximity Hysteresis ป้องกันการสลับห้องไปมาระหว่างเดินเฉียดกัน
+* 📻 **วิทยุสื่อสาร Walkie-Talkie (ข้ามระยะทางและมิติ)**:
+  - สลับคลื่นสัญญาณวิทยุ (ช่อง 1 - 5) เพื่อพูดคุยกับเพื่อนร่วมทีมได้ทันทีโดยไม่จำกัดระยะทาง และคุยข้ามมิติได้
+* 🧱 **3D Occlusion & Wall Dampening (ระบบกำแพงลดทอนเสียง)**:
+  - ตรวจจับบล็อกทึบระดับสายตา หากอยู่ในห้องหรือมีกำแพงล้อมรอบ จะลดรัศมีเสียงลง 40% อัตโนมัติ เพิ่มความสมจริงในเชิง Roleplay
+* 🔄 **ระบบจับคู่อัตโนมัติ (Auto-Pairing Handshake)**:
+  - พิมพ์ `!pair` ใน Discord รับรหัส 6 หลัก แล้วนำมาใส่ผ่าน `/scriptevent vc:pair` ในเกมเพื่อผูกรหัสลับอัตโนมัติ ไม่ต้องเปิดไฟล์แก้เอง
+* ⚡ **Circuit Breaker & Exponential Backoff**:
+  - เมื่อบอทปิดหรือหลุด ระบบเกมจะชะลอการยิง Request เพื่อลดโหลด CPU เซิร์ฟเวอร์ BDS และป้องกัน Error สแปมคอนโซล
 * 🔗 **ระบบผูกบัญชี Discord สะดวก (`!link`)**:
   - ผู้เล่นพิมพ์ `!link <ชื่อในเกม>` ใน Discord ครั้งเดียวจบ (เช่น `!link Steve`)
   - **ไม่ต้องเปลี่ยนชื่อเล่น (Nickname) ใน Discord ให้ตรงกับเกมอีกต่อไป**
