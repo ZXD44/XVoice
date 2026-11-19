@@ -13,6 +13,7 @@ fn player(name: &str, x: f64, z: f64, radius: f64) -> PlayerSample {
         enabled: true,
         verified: true,
         discord_id: None,
+        radio_channel: 0,
     }
 }
 
