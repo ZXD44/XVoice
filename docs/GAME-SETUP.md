@@ -1,4 +1,4 @@
-# 🎙️ XVoice - Proximity System (v4.2.0)
+# 🎙️ XVoice - Proximity System (v4.2.1)
 
 ### ระบบเสียงตามระยะ (Proximity Voice Chat) สำหรับ Minecraft Bedrock
 **พัฒนาโดย:** ZirconX
@@ -9,13 +9,13 @@
 
 ระบบประกอบด้วย 3 ส่วนหลักที่รันประสานกันแบบเรียลไทม์:
 
-*   **🛡️ Behavior Pack (BP):** *`game/XVoice BP`* (v4.2.0) — สมองหลักที่รันสคริปต์คำนวณระยะทาง และส่งข้อมูล Snapshot หาบอทผ่าน HTTP
-*   **🎨 Resource Pack (RP):** *`game/XVoice RP`* (v4.2.0) — ส่วนแสดงผลภาพ ไอคอน และโมเดลรีโมท
-*   **📦 Backend (Rust):** *`crates/vc-bot` & `crates/vc-core`* (v4.2.0) — ตัวรับ snapshot จากเกมและจัดการย้ายห้องเสียงใน Discord
+*   **🛡️ Behavior Pack (BP):** *`game/XVoice BP`* (v4.2.1) — สมองหลักที่รันสคริปต์คำนวณระยะทาง และส่งข้อมูล Snapshot หาบอทผ่าน HTTP
+*   **🎨 Resource Pack (RP):** *`game/XVoice RP`* (v4.2.1) — ส่วนแสดงผลภาพ ไอคอน และโมเดลรีโมท
+*   **📦 Backend (Rust):** *`crates/vc-bot` & `crates/vc-core`* (v4.2.1) — ตัวรับ snapshot จากเกมและจัดการย้ายห้องเสียงใน Discord
 
 ---
 
-## ✨ มีอะไรใหม่ในเวอร์ชัน v4.2.0
+## ✨ มีอะไรใหม่ในเวอร์ชัน v4.2.1
 
 ### 🟢 1. ระบบห้องอัตโนมัติ (High-Performance Auto Grouping)
 บอทจะตรวจจับการเดินเข้าใกล้กัน และจัดการแยก/รวมห้องเสียงให้อัตโนมัติด้วย Proximity Grid Hysteresis
@@ -41,6 +41,13 @@
 
 ### 💬 8. คำสั่งแชตในเกม (`!vc`, `!mic`, `!เสียง`)
 - พิมพ์คำสั่งเปิดเมนูได้ทันทีโดยไม่ต้องถือรีโมท
+
+### 🌐 9. รองรับ Minecraft Bedrock 1.26+ และ Script API v2.x
+- ปรับปรุงให้เข้ากันได้กับ BDS 1.26+ เต็มรูปแบบ (@minecraft/server 2.6.0, @minecraft/server-ui 2.1.0)
+- รองรับสถาปัตยกรรมเครือข่าย NetherNet UDP บนระบบเซิร์ฟเวอร์ Linux และ Windows
+
+### 🇹🇭 10. ระบบ Localization แสดงผลภาษาไทยสมบูรณ์
+- รองรับการแสดงผลข้อความปุ่มปฏิสัมพันธ์ `action.interact.settings=ตั้งค่า` บนไอเทมรีโมทโดยตรง
 
 ---
 

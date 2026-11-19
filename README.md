@@ -1,9 +1,9 @@
-# 🎙️ XVoice v4.2.0 (Advanced Proximity & Radio Engine)
+# 🎙️ XVoice v4.2.1 (Advanced Proximity & Radio Engine)
 
 > ระบบเสียงตามระยะ (Proximity Voice Chat) ความเร็วสูง สำหรับ **Minecraft Bedrock Dedicated Server + Discord**  
 > สถาปัตยกรรมใหม่ ขับเคลื่อนด้วย **Rust Backend (High Performance)** และ **Bedrock Script API**
 
-[![Version](https://img.shields.io/badge/Version-v4.2.0_Latest-blue?style=for-the-badge&logo=rust)](https://github.com/ZXD44/XVoice)
+[![Version](https://img.shields.io/badge/Version-v4.2.1_Latest-blue?style=for-the-badge&logo=rust)](https://github.com/ZXD44/XVoice)
 [![Minecraft Bedrock](https://img.shields.io/badge/Minecraft-Bedrock_BDS_Only-green?style=for-the-badge&logo=minecraft)](https://www.minecraft.net/download/server/bedrock)
 [![Discord API](https://img.shields.io/badge/Discord-Gateway_&_REST-5865F2?style=for-the-badge&logo=discord)](https://discord.com)
 
@@ -34,6 +34,10 @@
   - พิมพ์ `!vc`, `!mic`, หรือ `!เสียง` ในช่องแชตเกมเพื่อเปิด UI ตั้งค่าได้ทันทีโดยไม่ต้องถือรีโมท
 * 🧹 **Zero Ghost Channels**:
   - ตรวจสอบและเคลียร์ห้องเสียงอัตโนมัติ ลบห้องว่างทันทีเมื่อไม่มีคนใช้งาน หมดปัญหาห้องผีค้างใน Discord
+* 🌐 **Bedrock 1.26+ & Script API v2.x Ready**:
+  - รองรับ Minecraft Bedrock Dedicated Server 1.26+ และระบบเครือข่าย NetherNet UDP
+* 🇹🇭 **Localization UI (ไทย/อังกฤษ)**:
+  - รองรับภาษาไทยบน UI ครบถ้วน และปุ่มปฏิสัมพันธ์ (`action.interact.settings=ตั้งค่า`)
 
 ---
 
@@ -56,7 +60,7 @@ XVoice/
 │   ├── CONFIG.md             # คู่มือตัวแปร Environment ทั้งหมด
 │   └── GAME-SETUP.md         # คู่มือการติดตั้งฝั่งเซิร์ฟเวอร์และแอดมิน
 ├── game/
-│   ├── XVoice BP/            # Behavior Pack (Script API v1.14.0)
+│   ├── XVoice BP/            # Behavior Pack (Script API v2.x / @minecraft/server 2.6.0)
 │   ├── XVoice RP/            # Resource Pack (Icon, UI, Textures)
 │   └── permissions.example.json # ตัวอย่างสิทธิ์โมดูล BDS (@minecraft/server-net)
 ├── .gitignore
