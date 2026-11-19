@@ -46,3 +46,4 @@ config.env.local
 links.json
 *.log
 *.exe
+zircon-voice*
