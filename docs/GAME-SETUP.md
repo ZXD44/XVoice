@@ -1,4 +1,4 @@
-# 🎙️ XVoice - Proximity System (v4.2.2)
+# 🎙️ XVoice ZXD44 - Proximity System (v4.2.2)
 
 ### ระบบเสียงตามระยะ (Proximity Voice Chat) สำหรับ Minecraft Bedrock
 **พัฒนาโดย:** ZirconX

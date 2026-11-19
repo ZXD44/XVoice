@@ -404,7 +404,7 @@ impl Bridge {
                 "title": "🎙️ ศูนย์ควบคุมระบบเสียงตามระยะ (XVoice)",
                 "color": 0x5865F2,
                 "description": "**🟢 ระบบพร้อมใช้งาน (Bedrock 1.26+ Proximity Engine)**\n\nเชื่อมต่อตัวละคร Minecraft ของคุณกับ Discord เพื่อพูดคุยตามระยะจริงในเกม\nระบบทำงานผ่าน **\"ไอเทมในเกมโดยตรง\"** ไม่ต้องพิมพ์คำสั่งใดๆ ทั้งสิ้น!\n\n📱 **ไอเทมรีโมท**: ถือไอเทมรีโมทดิสคอร์ด กดใช้งานเพื่อปรับระยะเสียง (5-10 บล็อก)\n📻 **ไอเทมวิทยุ**: ถือไอเทมวิทยุสื่อสาร กดใช้งานเพื่อเลือกคลื่นสัญญาณ 1 - 5 คุยข้ามมิติ\n🎙️ **ระบบเสียงตามระยะ**: เข้าใกล้เพื่อนไมค์จะเปิดเองอัตโนมัติ ยิ่งใกล้ยิ่งดัง\n🧱 **ระบบกำแพงลดทอนเสียง**: อยู่ในอาคารหรือห้องปิด เสียงจะทึบลง 40% (3D Occlusion)",
-                "footer": { "text": "XVoice v4.2.1 • Bedrock Proximity & Radio Engine" }
+                "footer": { "text": "XVoice ZXD44 v4.2.2 • Bedrock Proximity & Radio Engine" }
             }],
             "components": [
                 {
@@ -498,7 +498,7 @@ impl Bridge {
             anyhow::bail!("❌ คำสั่งนี้ใช้ได้เฉพาะเจ้าของเซิร์ฟเวอร์ (Server Owner) เท่านั้น");
         }
 
-        let cat_name = "🎙️ ━━━ XVOICE PROXIMITY ━━━";
+        let cat_name = "🎙️ ━━━ XVOICE ZXD44 ━━━";
         let cat_id = self.api.create_category(guild_id, cat_name).await?;
 
         let text_name = "🔗・ระบบเสียงและผูกบัญชี";
