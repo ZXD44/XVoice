@@ -45,3 +45,4 @@ config.env
 config.env.local
 links.json
 *.log
+*.exe
