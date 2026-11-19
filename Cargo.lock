@@ -1763,7 +1763,7 @@ checksum = "ba73ea9cf16a25df0c8caa16c51acb937d5712a8429db78a3ee29d5dcacd3a65"
 
 [[package]]
 name = "vc-bot"
-version = "4.2.1"
+version = "4.2.2"
 dependencies = [
  "anyhow",
  "axum",
@@ -1782,7 +1782,7 @@ dependencies = [
 
 [[package]]
 name = "vc-core"
-version = "4.2.1"
+version = "4.2.2"
 dependencies = [
  "serde",
  "serde_json",
