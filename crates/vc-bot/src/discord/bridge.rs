@@ -47,6 +47,8 @@ pub struct Bridge {
     ready: AtomicBool,
     ready_notify: Notify,
     pub bot_id: AtomicU64,
+    pub lobby_channel_id: AtomicU64,
+    pub category_id: AtomicU64,
     members: RwLock<HashMap<String, MemberRef>>,
     pub voices: RwLock<HashMap<u64, VoiceInfo>>,
     pub channels: RwLock<HashMap<u64, String>>,
@@ -56,6 +58,8 @@ pub struct Bridge {
 impl Bridge {
     pub fn new(cfg: Arc<Config>, state: Arc<AppState>) -> Result<Arc<Self>> {
         let api = Arc::new(DiscordApi::new(cfg.token.clone())?);
+        let lobby_channel_id = AtomicU64::new(cfg.lobby_channel_id);
+        let category_id = AtomicU64::new(cfg.category_id.unwrap_or(0));
         Ok(Arc::new(Self {
             cfg,
             api,
@@ -63,11 +67,34 @@ impl Bridge {
             ready: AtomicBool::new(false),
             ready_notify: Notify::new(),
             bot_id: AtomicU64::new(0),
+            lobby_channel_id,
+            category_id,
             members: RwLock::new(HashMap::new()),
             voices: RwLock::new(HashMap::new()),
             channels: RwLock::new(HashMap::new()),
             links: RwLock::new(load_links()),
         }))
+    }
+
+    pub fn get_lobby_channel_id(&self) -> u64 {
+        self.lobby_channel_id.load(Ordering::Relaxed)
+    }
+
+    pub fn set_lobby_channel_id(&self, id: u64) {
+        self.lobby_channel_id.store(id, Ordering::Relaxed);
+    }
+
+    pub fn get_category_id(&self) -> Option<u64> {
+        let val = self.category_id.load(Ordering::Relaxed);
+        if val > 0 {
+            Some(val)
+        } else {
+            None
+        }
+    }
+
+    pub fn set_category_id(&self, id: u64) {
+        self.category_id.store(id, Ordering::Relaxed);
     }
 
     pub fn is_ready(&self) -> bool {
@@ -311,7 +338,7 @@ impl Bridge {
             let Some(channel) = channel else {
                 continue;
             };
-            let target = if channel == self.cfg.lobby_channel_id {
+            let target = if channel == self.get_lobby_channel_id() {
                 true
             } else if self.channel_is_zone(channel).await {
                 false
@@ -365,14 +392,63 @@ impl Bridge {
             Err(error) => tracing::warn!(%error, "ลบข้อความเก่าไม่สำเร็จ"),
         }
 
-        let payload = json!({
+        let payload = Self::dashboard_panel_payload();
+        if let Err(error) = self.api.send_message(channel, payload).await {
+            tracing::error!(%error, "ส่งแผงควบคุมระบบเสียงไม่สำเร็จ");
+        }
+    }
+
+    pub fn dashboard_panel_payload() -> Value {
+        json!({
             "embeds": [{
-                "title": "🎙️ ZirconX Voice Hub — ศูนย์ควบคุมระบบเสียง",
+                "title": "🎙️ ศูนย์ควบคุมระบบเสียงตามระยะ (XVoice)",
                 "color": 0x5865F2,
-                "description": "**ยินดีต้อนรับสู่ระบบเสียงตามระยะ ZirconX!**\n\n📌 **วิธีเริ่มใช้งานง่ายๆ**:\n1. กดปุ่ม **ผูกบัญชีตัวละคร** ด้านล่าง แล้วพิมพ์ชื่อในเกม\n2. เข้าห้องเสียง **Lobby** ใน Discord\n3. เข้าเกมแล้วคุยกับเพื่อนได้ทันที (ในเกมพิมพ์ `!vc` เพื่อตั้งค่า)\n\n──────────────────────────────\n🔧 **เมนูลัดช่วยเหลือ**:\n• **เช็คสถานะของฉัน**: ดูว่าผูกกับตัวละครใด และห้องเสียงปกติไหม\n• **ปลดไมค์ของฉัน**: หากย้ายห้องแล้วไมค์ค้างแดง ให้กดปุ่มนี้\n• **ยกเลิกการผูก**: หากต้องการเปลี่ยนตัวละครที่ผูก",
-                "footer": { "text": "ZirconX VoiceChat v4.1 • Proximity Voice Engine" }
+                "description": "**🟢 ระบบพร้อมใช้งาน (Bedrock 1.26+ Proximity Engine)**\n\nเชื่อมต่อตัวละคร Minecraft ของคุณกับ Discord เพื่อพูดคุยตามระยะจริงในเกม\nระบบทำงานผ่าน **\"ไอเทมในเกมโดยตรง\"** ไม่ต้องพิมพ์คำสั่งใดๆ ทั้งสิ้น!\n\n📱 **ไอเทมรีโมท**: ถือไอเทมรีโมทดิสคอร์ด กดใช้งานเพื่อปรับระยะเสียง (5-10 บล็อก)\n📻 **ไอเทมวิทยุ**: ถือไอเทมวิทยุสื่อสาร กดใช้งานเพื่อเลือกคลื่นสัญญาณ 1 - 5 คุยข้ามมิติ\n🎙️ **ระบบเสียงตามระยะ**: เข้าใกล้เพื่อนไมค์จะเปิดเองอัตโนมัติ ยิ่งใกล้ยิ่งดัง\n🧱 **ระบบกำแพงลดทอนเสียง**: อยู่ในอาคารหรือห้องปิด เสียงจะทึบลง 40% (3D Occlusion)",
+                "footer": { "text": "XVoice v4.2.1 • Bedrock Proximity & Radio Engine" }
             }],
             "components": [
+                {
+                    "type": 1,
+                    "components": [
+                        {
+                            "type": 3,
+                            "custom_id": "select_guide_menu",
+                            "placeholder": "✏️ ・เลือกคู่มือการใช้งานไอเทม & ระบบเสียง",
+                            "options": [
+                                {
+                                    "label": ":: ผูกบัญชีตัวละคร (Gamertag)",
+                                    "value": "guide_link",
+                                    "description": "╰ กดปุ่มสีเขียวด้านล่างเพื่อผูกชื่อ แล้วเข้าเล่นเกมได้ทันที",
+                                    "emoji": { "name": "🔗" }
+                                },
+                                {
+                                    "label": ":: วิธีใช้ไอเทมรีโมท (Discord Remote)",
+                                    "value": "guide_remote",
+                                    "description": "╰ ถือไอเทมรีโมทกดใช้งาน เพื่อปรับระยะเสียงและเอฟเฟกต์วงแหวน",
+                                    "emoji": { "name": "📱" }
+                                },
+                                {
+                                    "label": ":: วิธีใช้ไอเทมวิทยุสื่อสาร (Walkie-Talkie)",
+                                    "value": "guide_radio",
+                                    "description": "╰ ถือไอเทมวิทยุกดใช้งาน เพื่อเลือกคลื่นช่อง 1 - 5 คุยข้ามมิติ",
+                                    "emoji": { "name": "📻" }
+                                },
+                                {
+                                    "label": ":: ระบบกำแพงลดทอนเสียง (3D Occlusion)",
+                                    "value": "guide_occlusion",
+                                    "description": "╰ หากมีบล็อกทึบกั้นระดับสายตา เสียงจะทึบลง 40% เพื่อความสมจริง",
+                                    "emoji": { "name": "🧱" }
+                                },
+                                {
+                                    "label": ":: แก้ปัญหาไมค์ค้าง / เสียงไม่ออก",
+                                    "value": "guide_fix_mic",
+                                    "description": "╰ กดปุ่มสีแดงด้านล่าง เพื่อปลดไมค์ของตัวเองได้ทันทีตลอด 24 ชม.",
+                                    "emoji": { "name": "🛠️" }
+                                }
+                            ]
+                        }
+                    ]
+                },
                 {
                     "type": 1,
                     "components": [
@@ -392,31 +468,66 @@ impl Bridge {
                         },
                         {
                             "type": 2,
+                            "style": 4,
+                            "label": "ปลดไมค์ของฉัน",
+                            "emoji": { "name": "📢" },
+                            "custom_id": "fix_my_mic"
+                        },
+                        {
+                            "type": 2,
                             "style": 2,
                             "label": "ยกเลิกการผูก",
                             "emoji": { "name": "❌" },
                             "custom_id": "unlink_my_account"
                         }
                     ]
-                },
-                {
-                    "type": 1,
-                    "components": [
-                        {
-                            "type": 2,
-                            "style": 4,
-                            "label": "ปลดไมค์ของฉัน",
-                            "emoji": { "name": "🔧" },
-                            "custom_id": "fix_my_mic"
-                        }
-                    ]
                 }
             ]
-        });
+        })
+    }
 
-        if let Err(error) = self.api.send_message(channel, payload).await {
-            tracing::error!(%error, "ส่งแผงแก้ไมค์ไม่สำเร็จ");
+    pub async fn setup_guild(&self, guild_id: u64, user_id: u64) -> Result<(u64, u64, u64, u64)> {
+        let guild_info = self.api.fetch_guild(guild_id).await?;
+        let owner_id = guild_info
+            .get("owner_id")
+            .and_then(Value::as_str)
+            .and_then(|id| id.parse::<u64>().ok())
+            .unwrap_or(0);
+
+        if user_id != owner_id {
+            anyhow::bail!("❌ คำสั่งนี้ใช้ได้เฉพาะเจ้าของเซิร์ฟเวอร์ (Server Owner) เท่านั้น");
         }
+
+        let cat_name = "🎙️ ━━━ XVOICE PROXIMITY ━━━";
+        let cat_id = self.api.create_category(guild_id, cat_name).await?;
+
+        let text_name = "🔗・ระบบเสียงและผูกบัญชี";
+        let text_id = self
+            .api
+            .create_text_channel(guild_id, text_name, Some(cat_id), true)
+            .await?;
+
+        let lobby_name = "🔊 ┃ 🎮 ล็อบบี้รอเข้าเกม";
+        let lobby_id = self
+            .api
+            .create_voice_channel_open(guild_id, lobby_name, Some(cat_id))
+            .await?;
+
+        let radio_name = "📻 ┃ 📡 คลื่นวิทยุสื่อสาร";
+        let radio_id = self
+            .api
+            .create_voice_channel_open(guild_id, radio_name, Some(cat_id))
+            .await?;
+
+        self.set_lobby_channel_id(lobby_id);
+        self.set_category_id(cat_id);
+
+        save_setup_to_env(cat_id, lobby_id, text_id);
+
+        let payload = Self::dashboard_panel_payload();
+        let _ = self.api.send_message(text_id, payload).await;
+
+        Ok((cat_id, text_id, lobby_id, radio_id))
     }
 
     pub async fn wait_ready(&self) {
@@ -425,6 +536,30 @@ impl Bridge {
         }
         let _ = tokio::time::timeout(Duration::from_secs(60), self.ready_notify.notified()).await;
     }
+}
+
+pub fn save_setup_to_env(category_id: u64, lobby_id: u64, panel_channel_id: u64) {
+    let path = "config.env";
+    let mut content = std::fs::read_to_string(path).unwrap_or_default();
+
+    let update_or_append = |text: &mut String, key: &str, val: u64| {
+        let pattern = format!("{key}=");
+        if let Some(pos) = text.find(&pattern) {
+            let end_line = text[pos..].find('\n').map(|p| pos + p).unwrap_or(text.len());
+            text.replace_range(pos..end_line, &format!("{key}={val}"));
+        } else {
+            if !text.is_empty() && !text.ends_with('\n') {
+                text.push('\n');
+            }
+            text.push_str(&format!("{key}={val}\n"));
+        }
+    };
+
+    update_or_append(&mut content, "CATEGORY_ID", category_id);
+    update_or_append(&mut content, "LOBBY_CHANNEL_ID", lobby_id);
+    update_or_append(&mut content, "FIX_MIC_ID", panel_channel_id);
+
+    let _ = std::fs::write(path, content);
 }
 
 pub fn cache_voice_states(

@@ -38,6 +38,20 @@ impl EventHandler for Handler {
         self.bridge.bot_id.store(ready.user.id.get(), Ordering::Relaxed);
         self.bridge.bootstrap().await;
         self.bridge.reconcile_voices(&ctx).await;
+
+        let guild_id = self.bridge.cfg.guild_id;
+        let app_id = ready.user.id.get();
+        let setup_cmd = serde_json::json!([
+            {
+                "name": "setup",
+                "description": "ติดตั้งหมวดหมู่และช่องระบบเสียง XVoice อัตโนมัติ (เฉพาะเจ้าของเซิร์ฟเวอร์)"
+            }
+        ]);
+        if let Err(e) = self.bridge.api.register_guild_commands(app_id, guild_id, setup_cmd).await {
+            tracing::warn!(%e, "ลงทะเบียนคำสั่ง Slash Command /setup ไม่สำเร็จ");
+        } else {
+            tracing::info!("ลงทะเบียนคำสั่ง Slash Command /setup เรียบร้อย");
+        }
     }
 
     async fn voice_state_update(&self, _ctx: Context, old: Option<VoiceState>, new: VoiceState) {
@@ -58,7 +72,7 @@ impl EventHandler for Handler {
         };
 
         let cfg = self.bridge.cfg.clone();
-        let is_lobby = channel == cfg.lobby_channel_id;
+        let is_lobby = channel == self.bridge.get_lobby_channel_id();
         let is_zone = self.bridge.channel_is_zone(channel).await;
 
         if is_lobby && !new.mute {
@@ -320,7 +334,7 @@ impl EventHandler for Handler {
                             reply("❌ ต้องอยู่ในห้องเสียงก่อนกดปลดไมค์".into(), true).await;
                             return;
                         };
-                        if current == self.bridge.cfg.lobby_channel_id {
+                        if current == self.bridge.get_lobby_channel_id() {
                             reply(
                                 "⚠️ คุณอยู่ใน **Lobby** — ระบบปิดเสียงใน Lobby เสมอ\n💡 เดินเข้าใกล้ผู้เล่นอื่นเพื่อให้ระบบย้ายห้อง แล้วไมค์จะเปิดเอง".into(),
                                 true,
@@ -394,7 +408,76 @@ impl EventHandler for Handler {
                         )
                         .await;
                     }
+                    "select_guide_menu" => {
+                        let selected = match &component.data.kind {
+                            serenity::all::ComponentInteractionDataKind::StringSelect { values } => {
+                                values.first().map(|s| s.as_str()).unwrap_or("")
+                            }
+                            _ => "",
+                        };
+                        let guide_text = match selected {
+                            "guide_link" => {
+                                "🔗 **วิธีผูกบัญชี Minecraft (Gamertag)**:\n\
+                                1. กดปุ่มสีเขียว **\"ผูกบัญชีตัวละคร\"** ด้านล่าง\n\
+                                2. พิมพ์ชื่อตัวละครในเกมของคุณให้ถูกต้อง (เช่น Steve หรือ Alex)\n\
+                                3. เข้าห้องเสียง **Lobby** ใน Discord\n\
+                                4. เข้าเกม Minecraft แล้วเดินเข้าใกล้เพื่อน ไมค์จะเปิดให้คุยทันที!"
+                            }
+                            "guide_remote" => {
+                                "📱 **วิธีใช้งานไอเทมรีโมทดิสคอร์ด (Discord Remote)**:\n\
+                                • ถือไอเทมรีโมทไว้ในมือ แล้วคลิกขวา (บนคอม) หรือกดค้างที่หน้าจอ (บนมือถือ)\n\
+                                • จะมีหน้าต่างเมนูเปิดขึ้นมาให้ปรับระยะการได้ยิน (5 - 10 บล็อก)\n\
+                                • สามารถเปิด/ปิดเอฟเฟกต์วงแหวนเสียงรอบตัวละครได้\n\
+                                • *(ควบคุมผ่านไอเทมอย่างเดียว ไม่ต้องพิมพ์คำสั่งในเกม)*"
+                            }
+                            "guide_radio" => {
+                                "📻 **วิธีใช้งานวิทยุสื่อสาร (Walkie-Talkie)**:\n\
+                                • ถือไอเทมวิทยุสื่อสารไว้ในมือ แล้วคลิกขวา / กดค้าง\n\
+                                • เลือกคลื่นความถี่ที่ต้องการ (ช่อง 1 - 5)\n\
+                                • เมื่ออยู่คลื่นเดียวกัน จะพูดคุยกับเพื่อนร่วมทีมได้ทันที ไม่จำกัดระยะทาง และคุยข้ามมิติได้!"
+                            }
+                            "guide_occlusion" => {
+                                "🧱 **ระบบกำแพงลดทอนเสียง (3D Occlusion)**:\n\
+                                • ระบบจะตรวจจับบล็อกทึบระหว่างตัวละครของคุณกับผู้เล่นอื่นแบบ 3D\n\
+                                • หากยืนอยู่ในห้องปิดหรือมีกำแพงกั้น เสียงจะลดทอนลง 40% อัตโนมัติ เพื่อบรรยากาศที่สมจริง"
+                            }
+                            "guide_fix_mic" => {
+                                "🛠️ **วิธีแก้ปัญหาไมค์ค้าง / เสียงไม่ออก**:\n\
+                                • หากอยู่ในเกมแล้วระบบไม่เปิดไมค์ หรือไมค์ขึ้นสีแดงค้าง\n\
+                                • ให้กดปุ่มสีแดง **\"ปลดไมค์ของฉัน\"** ด้านล่างนี้ได้ทันทีตลอด 24 ชม.\n\
+                                • ระบบจะส่งสัญญาณปลดไมค์ใน Discord ให้ทันที"
+                            }
+                            _ => "ℹ️ กรุณาเลือกหัวข้อที่ต้องการอ่านจากเมนูด้านบน",
+                        };
+                        reply(guide_text.to_string(), true).await;
+                    }
                     other => tracing::debug!(other, "ไม่รู้จักปุ่ม"),
+                }
+            }
+            Interaction::Command(command) => {
+                let user_id = command.user.id.get();
+                let guild_id = command.guild_id.map(|g| g.get()).unwrap_or(self.bridge.cfg.guild_id);
+                let interaction_id = command.id.get();
+                let token = command.token.clone();
+
+                if command.data.name == "setup" {
+                    match self.bridge.setup_guild(guild_id, user_id).await {
+                        Ok((cat_id, text_id, lobby_id, radio_id)) => {
+                            let summary = format!(
+                                "✅ **ติดตั้งระบบเสียง XVoice สำเร็จเรียบร้อยแล้ว!**\n\n\
+                                📁 หมวดหมู่: <#{cat_id}>\n\
+                                💬 ช่องแผงควบคุม: <#{text_id}>\n\
+                                🔊 ช่องล็อบบี้: <#{lobby_id}>\n\
+                                📻 ช่องวิทยุ: <#{radio_id}>\n\n\
+                                💡 *บอทได้ทำการส่งแผงควบคุมและผูกค่าระบบเรียบร้อย ผู้เล่นสามารถกดใช้งานไอเทมในเกมได้ทันที*"
+                            );
+                            let _ = self.bridge.api.interaction_reply(interaction_id, &token, &summary, true).await;
+                        }
+                        Err(err) => {
+                            let reply_text = format!("{err}");
+                            let _ = self.bridge.api.interaction_reply(interaction_id, &token, &reply_text, true).await;
+                        }
+                    }
                 }
             }
             Interaction::Modal(modal) => {

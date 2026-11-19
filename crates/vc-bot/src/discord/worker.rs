@@ -124,7 +124,7 @@ pub async fn apply_layout(bridge: &Arc<Bridge>, mut layout: Layout) -> Result<()
     // 1. Resolve channels (create where the planner asked for a fresh one).
     for room in &mut layout.rooms {
         if let Slot::New { name } = &room.slot {
-            match bridge.api.create_voice_channel(guild, name, cfg.category_id).await {
+            match bridge.api.create_voice_channel(guild, name, bridge.get_category_id()).await {
                 Ok(channel) => {
                     bridge
                         .channels
@@ -197,27 +197,29 @@ pub async fn apply_layout(bridge: &Arc<Bridge>, mut layout: Layout) -> Result<()
     }
 
     // 3. Lobby returns: Atomic move to lobby + server mute in 1 PATCH request (Skip if already there & muted).
-    let lobby = cfg.lobby_channel_id;
-    for player in &layout.to_lobby {
-        let Some(found) = bridge.find(player).await else {
-            continue;
-        };
-        let voice = bridge.voice_of(found.id).await;
-        if voice.channel == Some(lobby) && voice.mute {
-            continue;
-        }
+    let lobby = bridge.get_lobby_channel_id();
+    if lobby > 0 {
+        for player in &layout.to_lobby {
+            let Some(found) = bridge.find(player).await else {
+                continue;
+            };
+            let voice = bridge.voice_of(found.id).await;
+            if voice.channel == Some(lobby) && voice.mute {
+                continue;
+            }
 
-        let need_channel = if voice.channel == Some(lobby) { None } else { Some(lobby) };
-        let need_mute = if voice.mute { None } else { Some(true) };
+            let need_channel = if voice.channel == Some(lobby) { None } else { Some(lobby) };
+            let need_mute = if voice.mute { None } else { Some(true) };
 
-        if need_channel.is_some() || need_mute.is_some() {
-            match bridge.api.update_member(guild, found.id, need_channel, need_mute).await {
-                Ok(()) => {
-                    bridge.set_voice(found.id, Some(lobby)).await;
-                    bridge.set_mute(found.id, true).await;
-                    tracing::info!(player, "กลับ Lobby (Mute)");
+            if need_channel.is_some() || need_mute.is_some() {
+                match bridge.api.update_member(guild, found.id, need_channel, need_mute).await {
+                    Ok(()) => {
+                        bridge.set_voice(found.id, Some(lobby)).await;
+                        bridge.set_mute(found.id, true).await;
+                        tracing::info!(player, "กลับ Lobby (Mute)");
+                    }
+                    Err(error) => tracing::warn!(player, %error, "ย้ายกลับ Lobby ไม่สำเร็จ"),
                 }
-                Err(error) => tracing::warn!(player, %error, "ย้ายกลับ Lobby ไม่สำเร็จ"),
             }
         }
     }

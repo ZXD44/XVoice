@@ -63,7 +63,9 @@ impl Config {
     pub fn from_env() -> Result<Self> {
         let token = var("DISCORD_TOKEN").unwrap_or_default();
         let guild_id = id("GUILD_ID").context("ต้องตั้งค่า GUILD_ID")?;
-        let lobby_channel_id = id("LOBBY_CHANNEL_ID").context("ต้องตั้งค่า LOBBY_CHANNEL_ID")?;
+        let lobby_channel_id = var("LOBBY_CHANNEL_ID")
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(0);
 
         let radius_mode = match var("RADIUS_MODE")
             .unwrap_or_else(|| "max".into())

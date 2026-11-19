@@ -1,6 +1,6 @@
 {
-  "version": "4.2.1",
+  "version": "4.2.2",
   "name": "XVoice",
   "author": "ZirconX",
-  "release_name": "v4.2.1 - Bedrock 1.26+ Support & UI Localization"
+  "release_name": "v4.2.2 - Slash Command /setup & Item-Driven Discord UI"
 }

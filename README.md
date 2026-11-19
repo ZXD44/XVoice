@@ -1,9 +1,9 @@
-# 🎙️ XVoice v4.2.1 (Advanced Proximity & Radio Engine)
+# 🎙️ XVoice v4.2.2 (Advanced Proximity & Radio Engine)
 
 > ระบบเสียงตามระยะ (Proximity Voice Chat) ความเร็วสูง สำหรับ **Minecraft Bedrock Dedicated Server + Discord**  
 > สถาปัตยกรรมใหม่ ขับเคลื่อนด้วย **Rust Backend (High Performance)** และ **Bedrock Script API**
 
-[![Version](https://img.shields.io/badge/Version-v4.2.1_Latest-blue?style=for-the-badge&logo=rust)](https://github.com/ZXD44/XVoice)
+[![Version](https://img.shields.io/badge/Version-v4.2.2_Latest-blue?style=for-the-badge&logo=rust)](https://github.com/ZXD44/XVoice)
 [![Minecraft Bedrock](https://img.shields.io/badge/Minecraft-Bedrock_BDS_Only-green?style=for-the-badge&logo=minecraft)](https://www.minecraft.net/download/server/bedrock)
 [![Discord API](https://img.shields.io/badge/Discord-Gateway_&_REST-5865F2?style=for-the-badge&logo=discord)](https://discord.com)
 
@@ -30,8 +30,10 @@
   - จัดการย้ายห้องและสั่งเปิด/ปิดไมค์ใน Request เดียว ป้องกันไมค์แดงค้าง และแก้ปัญหาติด Discord Rate Limit 429
 * 🛠️ **ปลดไมค์ฉุกเฉินได้จากในเกม (In-Game Unmute)**:
   - แก้ปัญหาไมค์ค้างได้ทันทีผ่านเมนูในเกม โดยไม่ต้องพับหน้าจอออกไปกดใน Discord
-* 💬 **คำสั่งแชตเปิดเมนูทันใจ**:
-  - พิมพ์ `!vc`, `!mic`, หรือ `!เสียง` ในช่องแชตเกมเพื่อเปิด UI ตั้งค่าได้ทันทีโดยไม่ต้องถือรีโมท
+* 📱 **ระบบไอเทมควบคุม 100% (Item-Driven & Zero Command)**:
+  - ควบคุมและตั้งค่าระบบเสียงทั้งหมดผ่าน "ไอเทมรีโมท" และ "ไอเทมวิทยุ" ในเกมโดยตรง ใช้งานง่าย ไม่ต้องพิมพ์คำสั่งใดๆ ทั้งสิ้น
+* 👑 **คำสั่งเดียวจบ `/setup` (Server Owner Only)**:
+  - เจ้าของเซิร์ฟเวอร์พิมพ์ `/setup` ใน Discord บอทสร้าง Category, Voice Channels (Lobby, Radio) และปักหมุด Interactive Dashboard Panel สวยงามพร้อม Dropdown 2 บรรทัดและปุ่ม Component อัตโนมัติ
 * 🧹 **Zero Ghost Channels**:
   - ตรวจสอบและเคลียร์ห้องเสียงอัตโนมัติ ลบห้องว่างทันทีเมื่อไม่มีคนใช้งาน หมดปัญหาห้องผีค้างใน Discord
 * 🌐 **Bedrock 1.26+ & Script API v2.x Ready**:
@@ -133,13 +135,12 @@ XVoice/
 ## 💬 คำสั่งและการใช้งาน
 
 ### 📱 ในเซิร์ฟเวอร์ Discord:
-- `!link <ชื่อในเกม>` : ผูกบัญชี Discord ของตัวเองกับตัวละครในเกม (เช่น `!link Steve`)
-- `!link @ผู้ใช้ <ชื่อในเกม>` : *(สำหรับแอดมิน)* ผูกบัญชี Discord ให้กับผู้เล่นอื่น
-- `!unlink` : ยกเลิกการผูกบัญชี
-- กดปุ่ม **"ปลดไมค์ของฉัน"** ในห้อง `FIX_MIC_ID` เพื่อปลดไมค์ฉุกเฉินได้ตลอด 24 ชม.
+- `/setup` : *(เฉพาะเจ้าของดิส / Server Owner)* ติดตั้งหมวดหมู่ ห้องเสียง และส่งแผงควบคุมระบบเสียงอัตโนมัติ
+- กดปุ่ม **"ผูกบัญชีตัวละคร"** : เด้งหน้าต่าง Modal ให้กรอกชื่อตัวละครในเกมได้ทันที
+- กดปุ่ม **"ปลดไมค์ของฉัน"** : ปลดไมค์ฉุกเฉินได้ทันทีตลอด 24 ชม.
+- เมนูเลือกคู่มือ (Select Menu) : เลือกอ่านวิธีใช้งานไอเทมรีโมท, วิทยุ และระบบกำแพงลดทอนเสียง 3D
 
-### 🎮 ในเกม Minecraft:
-- พิมพ์ `!vc`, `!mic`, หรือ `!เสียง` เพื่อเปิดแผงควบคุมระบบเสียง
-- หรือถือไอเทม **"รีโมทดิสคอร์ด"** คลิกขวา (บนคอม) หรือกดค้าง (บนมือถือ)
-- ปรับระยะการได้ยิน (5 - 10 บล็อก) และเลือกเอฟเฟกต์แสดงระยะรอบตัว
-- **เมนูแอดมิน** (ต้องมีแท็ก `/tag @s add admin`): ปรับแต่ง URL บอท, API Secret, และสั่ง Sync ระบบ
+### 🎮 ในเกม Minecraft (ใช้งานผ่านไอเทม 100%):
+- ถือไอเทม **"รีโมทดิสคอร์ด"** คลิกขวา (บนคอม) หรือกดค้าง (บนมือถือ) เพื่อเปิดแผงตั้งค่าระยะเสียง (5 - 10 บล็อก)
+- ถือไอเทม **"วิทยุสื่อสาร"** คลิกขวา / กดค้าง เพื่อสลับช่องคลื่นสัญญาณ (ช่อง 1 - 5) สำหรับคุยข้ามมิติ
+- **เมนูแอดมิน** (ต้องมีแท็ก `/tag @s add admin`): ปรับแต่ง URL บอท, API Secret, และสั่ง Sync ระบบผ่านรีโมทโดยตรง

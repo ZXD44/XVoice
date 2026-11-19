@@ -2,12 +2,12 @@
     "format_version": 2,
     "header": {
         "name": "XVoice RP",
-        "description": "§eระบบเสียงตามระยะ XVoice (v4.2.1)\n§7สร้างโดย ZirconX",
+        "description": "§eระบบเสียงตามระยะ XVoice (v4.2.2)\n§7สร้างโดย ZirconX",
         "uuid": "a1b2c3d4-e5f6-4a1b-9c8d-7e6f5a4b3c2d",
         "version": [
             4,
             2,
-            1
+            2
         ],
         "min_engine_version": [
             1,
@@ -22,7 +22,7 @@
             "version": [
                 4,
                 2,
-                1
+                2
             ]
         }
     ],

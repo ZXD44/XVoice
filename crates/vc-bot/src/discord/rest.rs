@@ -361,6 +361,130 @@ impl DiscordApi {
         Ok(())
     }
 
+    pub async fn fetch_guild(&self, guild: u64) -> Result<Value> {
+        self.send(reqwest::Method::GET, &format!("/guilds/{guild}"), None)
+            .await
+    }
+
+    pub async fn register_guild_commands(
+        &self,
+        application_id: u64,
+        guild_id: u64,
+        commands: Value,
+    ) -> Result<Value> {
+        self.send(
+            reqwest::Method::PUT,
+            &format!("/applications/{application_id}/guilds/{guild_id}/commands"),
+            Some(commands),
+        )
+        .await
+    }
+
+    pub async fn create_category(&self, guild: u64, name: &str) -> Result<u64> {
+        let payload = json!({
+            "name": name,
+            "type": 4
+        });
+        let value = self
+            .send(
+                reqwest::Method::POST,
+                &format!("/guilds/{guild}/channels"),
+                Some(payload),
+            )
+            .await?;
+        value
+            .get("id")
+            .and_then(Value::as_str)
+            .and_then(|id| id.parse().ok())
+            .ok_or_else(|| anyhow!("Discord ไม่คืน category id"))
+    }
+
+    pub async fn create_text_channel(
+        &self,
+        guild: u64,
+        name: &str,
+        category: Option<u64>,
+        read_only_everyone: bool,
+    ) -> Result<u64> {
+        let mut overwrites = Vec::new();
+        if read_only_everyone {
+            // VIEW_CHANNEL (1 << 10 = 1024), deny SEND_MESSAGES (1 << 11 = 2048)
+            overwrites.push(json!({
+                "id": guild.to_string(),
+                "type": 0,
+                "allow": (1u64 << 10).to_string(),
+                "deny": (1u64 << 11).to_string()
+            }));
+        }
+        let mut payload = json!({
+            "name": name,
+            "type": 0,
+            "permission_overwrites": overwrites
+        });
+        if let Some(cat) = category {
+            payload["parent_id"] = json!(cat.to_string());
+        }
+        let value = self
+            .send(
+                reqwest::Method::POST,
+                &format!("/guilds/{guild}/channels"),
+                Some(payload),
+            )
+            .await?;
+        value
+            .get("id")
+            .and_then(Value::as_str)
+            .and_then(|id| id.parse().ok())
+            .ok_or_else(|| anyhow!("Discord ไม่คืน channel id"))
+    }
+
+    pub async fn create_voice_channel_open(
+        &self,
+        guild: u64,
+        name: &str,
+        category: Option<u64>,
+    ) -> Result<u64> {
+        let payload = json!({
+            "name": name,
+            "type": 2,
+            "parent_id": category.map(|c| c.to_string()),
+            "permission_overwrites": [{
+                "id": guild.to_string(),
+                "type": 0,
+                "allow": ((1u64 << 10) | (1u64 << 20)).to_string(), // VIEW_CHANNEL | CONNECT
+                "deny": "0"
+            }]
+        });
+        let value = self
+            .send(
+                reqwest::Method::POST,
+                &format!("/guilds/{guild}/channels"),
+                Some(payload),
+            )
+            .await?;
+        value
+            .get("id")
+            .and_then(Value::as_str)
+            .and_then(|id| id.parse().ok())
+            .ok_or_else(|| anyhow!("Discord ไม่คืน voice channel id"))
+    }
+
+    #[allow(dead_code)]
+    pub async fn interaction_response_data(
+        &self,
+        interaction_id: u64,
+        token: &str,
+        data: Value,
+    ) -> Result<()> {
+        self.send(
+            reqwest::Method::POST,
+            &format!("/interactions/{interaction_id}/{token}/callback"),
+            Some(json!({ "type": 4, "data": data })),
+        )
+        .await?;
+        Ok(())
+    }
+
     pub async fn interaction_modal(
         &self,
         interaction_id: u64,
