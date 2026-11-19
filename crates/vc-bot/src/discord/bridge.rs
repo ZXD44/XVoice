@@ -498,7 +498,7 @@ impl Bridge {
             anyhow::bail!("❌ คำสั่งนี้ใช้ได้เฉพาะเจ้าของเซิร์ฟเวอร์ (Server Owner) เท่านั้น");
         }
 
-        let cat_name = "🎙️ ━━━ XVOICE ZXD44 ━━━";
+        let cat_name = "━━━ XVOICE ZXD44 ━━━";
         let cat_id = self.api.create_category(guild_id, cat_name).await?;
 
         let text_name = "🔗・ระบบเสียงและผูกบัญชี";
