@@ -1,4 +1,4 @@
-# 🎙️ XVoice ZXD44 v4.2.2 (Advanced Proximity & Radio Engine)
+# 🎙️ XVoice v4.2.2 (Advanced Proximity & Radio Engine)
 
 > ระบบเสียงตามระยะ (Proximity Voice Chat) ความเร็วสูง สำหรับ **Minecraft Bedrock Dedicated Server + Discord**  
 > สถาปัตยกรรมใหม่ ขับเคลื่อนด้วย **Rust Backend (High Performance)** และ **Bedrock Script API**
