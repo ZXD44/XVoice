@@ -1,6 +1,6 @@
 {
-  "version": "4.2.2",
+  "version": "4.2.3",
   "name": "XVoice",
   "author": "ZirconX",
-  "release_name": "v4.2.2 - Slash Command /setup & Item-Driven Discord UI"
+  "release_name": "v4.2.3 - Standard Gateway Intents & Channel-level Lobby Mute"
 }
