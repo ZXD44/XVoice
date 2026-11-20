@@ -438,6 +438,39 @@ impl DiscordApi {
             .ok_or_else(|| anyhow!("Discord ไม่คืน channel id"))
     }
 
+    pub async fn create_lobby_voice_channel(
+        &self,
+        guild: u64,
+        name: &str,
+        category: Option<u64>,
+    ) -> Result<u64> {
+        // อนุญาตให้เห็นห้องและเชื่อมต่อ (VIEW_CHANNEL: 1<<10, CONNECT: 1<<20)
+        // และปิดไมค์ถาวรสำหรับ @everyone ในห้องล็อบบี้ (deny SPEAK: 1<<21 = 2097152)
+        let payload = json!({
+            "name": name,
+            "type": 2,
+            "parent_id": category.map(|c| c.to_string()),
+            "permission_overwrites": [{
+                "id": guild.to_string(),
+                "type": 0,
+                "allow": ((1u64 << 10) | (1u64 << 20)).to_string(),
+                "deny": (1u64 << 21).to_string()
+            }]
+        });
+        let value = self
+            .send(
+                reqwest::Method::POST,
+                &format!("/guilds/{guild}/channels"),
+                Some(payload),
+            )
+            .await?;
+        value
+            .get("id")
+            .and_then(Value::as_str)
+            .and_then(|id| id.parse().ok())
+            .ok_or_else(|| anyhow!("Discord ไม่คืน lobby voice channel id"))
+    }
+
     pub async fn create_voice_channel_open(
         &self,
         guild: u64,

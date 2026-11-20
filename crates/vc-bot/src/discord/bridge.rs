@@ -510,7 +510,7 @@ impl Bridge {
         let lobby_name = "🔊 ┃ 🎮 ล็อบบี้รอเข้าเกม";
         let lobby_id = self
             .api
-            .create_voice_channel_open(guild_id, lobby_name, Some(cat_id))
+            .create_lobby_voice_channel(guild_id, lobby_name, Some(cat_id))
             .await?;
 
         let radio_name = "📻 ┃ 📡 คลื่นวิทยุสื่อสาร";
