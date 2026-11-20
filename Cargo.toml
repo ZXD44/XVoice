@@ -3,7 +3,7 @@ resolver = "2"
 members = ["crates/vc-core", "crates/vc-bot"]
 
 [workspace.package]
-version = "4.2.2"
+version = "4.2.3"
 edition = "2021"
 rust-version = "1.80"
 license = "MIT"
