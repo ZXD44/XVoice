@@ -19,11 +19,11 @@ pub struct Handler {
 }
 
 pub async fn client(cfg: Arc<Config>, bridge: Arc<Bridge>) -> Result<Client> {
+    // ใช้ Standard Gateway Intents 100% ไม่ขอ Privileged Intents เพื่อป้องกัน Error 4014
+    // และสอดคล้องกับมาตรฐาน Zero Chat Commands (Interactions, Modals & Buttons เท่านั้น)
     let intents = GatewayIntents::GUILDS
-        | GatewayIntents::GUILD_MEMBERS
         | GatewayIntents::GUILD_VOICE_STATES
-        | GatewayIntents::GUILD_MESSAGES
-        | GatewayIntents::MESSAGE_CONTENT;
+        | GatewayIntents::GUILD_MESSAGES;
 
     Client::builder(&cfg.token, intents)
         .event_handler(Handler { bridge })
@@ -130,108 +130,9 @@ impl EventHandler for Handler {
         self.bridge.unindex_member(user.id.get()).await;
     }
 
-    async fn message(&self, _ctx: Context, message: Message) {
-        if message.author.bot {
-            return;
-        }
-
-        let raw = message.content.trim();
-        let lower = raw.to_lowercase();
-
-        // 1. Account linking commands
-        if lower.starts_with("!link ") || lower.starts_with("!ผูก ") {
-            let parts: Vec<&str> = raw.split_whitespace().collect();
-            if parts.len() == 2 {
-                let gamertag = parts[1];
-                let user_id = message.author.id.get();
-                self.bridge.link_account(gamertag, user_id).await;
-                let reply = format!("✅ ผูกบัญชี **{}** กับ <@{}> เรียบร้อยแล้ว! เข้าเกมคุยได้ทันที 🎙️", gamertag, user_id);
-                let _ = self.bridge.api.send_message(message.channel_id.get(), json!({ "content": reply })).await;
-                return;
-            } else if parts.len() == 3 && !message.mentions.is_empty() {
-                let target_user = message.mentions[0].id.get();
-                let gamertag = parts[2];
-                self.bridge.link_account(gamertag, target_user).await;
-                let reply = format!("✅ แอดมินผูกบัญชี **{}** ให้กับ <@{}> เรียบร้อยแล้ว!", gamertag, target_user);
-                let _ = self.bridge.api.send_message(message.channel_id.get(), json!({ "content": reply })).await;
-                return;
-            } else {
-                let reply = "💡 วิธีผูกบัญชี: พิมพ์ `!link <ชื่อในเกม>` เช่น `!link Steve`";
-                let _ = self.bridge.api.send_message(message.channel_id.get(), json!({ "content": reply })).await;
-                return;
-            }
-        }
-
-        if lower == "!unlink" || lower == "!ยกเลิกผูก" {
-            let user_id = message.author.id.get();
-            let unlinked = self.bridge.unlink_account(user_id).await;
-            let reply = if unlinked {
-                "✅ ยกเลิกการผูกบัญชี Discord ของคุณเรียบร้อยแล้ว"
-            } else {
-                "ℹ️ บัญชีของคุณยังไม่ได้ผูกกับชื่อใดๆ"
-            };
-            let _ = self.bridge.api.send_message(message.channel_id.get(), json!({ "content": reply })).await;
-            return;
-        }
-
-        if lower == "!pair" || lower == "!จับคู่" {
-            // สร้างรหัส OTP 6 หลัก
-            use std::time::{Duration, Instant};
-            let code = format!("{:06}", (std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos() % 900000 + 100000) as u32);
-            let expires = Instant::now() + Duration::from_secs(300);
-
-            *self.bridge.state.pair_code.lock().unwrap() = Some((code.clone(), expires));
-            let reply = format!(
-                "🔗 **รหัสจับคู่เซิร์ฟเวอร์เกม (Auto-Pairing Code)**: `{}`\n(รหัสมีอายุ 5 นาที นำไปพิมพ์ในเกมผ่านเมนูแอดมิน !vc หรือพิมพ์ `/scriptevent vc:pair {}`)",
-                code, code
-            );
-            let _ = self.bridge.api.send_message(message.channel_id.get(), json!({ "content": reply })).await;
-            return;
-        }
-
-        let Some(admin) = self.bridge.cfg.admin_channel_id else {
-            return;
-        };
-        if message.channel_id.get() != admin {
-            return;
-        }
-
-        let content = lower;
-        if content != "!menu" && content != "!admin" && content != "แอดมิน" {
-            return;
-        }
-
-        let payload = json!({
-            "content": "**🎛️ ZirconX Voice Control Panel**\nเลือกคำสั่งที่ต้องการทำ:",
-            "components": [{
-                "type": 1,
-                "components": [
-                    {
-                        "type": 2,
-                        "style": 4,
-                        "label": "ปลดล็อคไมค์ (ฉุกเฉิน)",
-                        "emoji": { "name": "📢" },
-                        "custom_id": "unmute_server"
-                    },
-                    {
-                        "type": 2,
-                        "style": 1,
-                        "label": "เช็คสถานะระบบ",
-                        "emoji": { "name": "ℹ️" },
-                        "custom_id": "check_status"
-                    }
-                ]
-            }]
-        });
-
-        if let Err(error) = self
-            .bridge
-            .api
-            .send_message(message.channel_id.get(), payload)
-            .await
-        {
-            tracing::warn!(%error, "ส่งเมนูไม่สำเร็จ");
-        }
+    async fn message(&self, _ctx: Context, _message: Message) {
+        // Zero Chat Commands: ระบบควบคุมผ่าน Discord Slash Commands (/setup),
+        // Interactive Dashboard Buttons, Modals, และไอเทมในเกมโดยตรง 100% ไร้คำสั่งพิมพ์แชต
     }
 
     async fn interaction_create(&self, _ctx: Context, interaction: Interaction) {
