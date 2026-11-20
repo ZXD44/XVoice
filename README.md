@@ -88,12 +88,24 @@ XVoice/
 ## 🚀 วิธีการติดตั้งและเริ่มใช้งาน (Step-by-Step)
 
 ### 1️⃣ เตรียมฝั่ง Discord Bot (Rust Backend)
-1. ติดตั้ง [Rust Toolchain](https://rustup.rs/) (หรือใช้ไฟล์คอมไพล์สำเร็จรูป)
-2. คัดลอก `config.env.example` เป็น `config.env`:
+1. **สร้างและตั้งค่า Bot บน [Discord Developer Portal](https://discord.com/developers/applications)**:
+   - **แท็บ Bot ➡️ Authorization Flow**:
+     * `PUBLIC BOT`: **เปิด (ON)**
+     * `REQUIRES OAUTH2 CODE GRANT`: **ปิด (OFF)** *(หากเปิดค้างจะติด Error "Integration requires code grant")*
+   - **แท็บ Bot ➡️ Privileged Gateway Intents** *(จำเป็นมาก เพื่อให้อ่านสถานะเสียงและชื่อผู้เล่นได้)*:
+     * `Presence Intent`: **เปิด (ON)**
+     * `Server Members Intent`: **เปิด (ON)**
+     * `Message Content Intent`: **เปิด (ON)**
+   - **เชิญบอทเข้าเซิร์ฟเวอร์ (OAuth2 URL Generator)**:
+     * Scopes: `bot`, `applications.commands`
+     * Permissions: Administrator (`8`)
+     * ตัวอย่างลิงก์เชิญ: `https://discord.com/oauth2/authorize?client_id=<BOT_ID>&permissions=8&scope=bot%20applications.commands`
+2. ติดตั้ง [Rust Toolchain](https://rustup.rs/) (หรือใช้ไฟล์คอมไพล์สำเร็จรูป `zircon-voice.exe` / `zircon-voice`)
+3. คัดลอก `config.env.example` เป็น `config.env`:
    ```bash
    cp config.env.example config.env
    ```
-3. กำหนดค่าใน `config.env`:
+4. กำหนดค่าใน `config.env`:
    ```env
    DISCORD_TOKEN=โทเคนบอทของคุณ
    GUILD_ID=ไอดีเซิร์ฟเวอร์ดิสคอร์ด
