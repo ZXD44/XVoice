@@ -1,6 +1,6 @@
 {
-  "version": "4.2.3",
+  "version": "4.2.4",
   "name": "XVoice",
   "author": "ZirconX",
-  "release_name": "v4.2.3 - Standard Gateway Intents & Channel-level Lobby Mute"
+  "release_name": "v4.2.4 - Interaction Fast-Path & Graceful Intent Handling"
 }

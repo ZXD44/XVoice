@@ -341,6 +341,26 @@ impl DiscordApi {
         Ok(())
     }
 
+    async fn send_interaction_callback(&self, path: &str, body: Value) -> Result<()> {
+        let url = format!("{}{}", self.base, path);
+        let response = self
+            .http
+            .post(&url)
+            .header(reqwest::header::USER_AGENT, USER_AGENT)
+            .json(&body)
+            .send()
+            .await
+            .context("ส่ง interaction callback ไม่สำเร็จ")?;
+
+        let status = response.status();
+        if status == reqwest::StatusCode::NO_CONTENT || status.is_success() {
+            return Ok(());
+        }
+
+        let text = response.text().await.unwrap_or_default();
+        Err(anyhow!("{path}: HTTP {status} {text}"))
+    }
+
     pub async fn interaction_reply(
         &self,
         interaction_id: u64,
@@ -352,13 +372,11 @@ impl DiscordApi {
         if ephemeral {
             data["flags"] = json!(64);
         }
-        self.send(
-            reqwest::Method::POST,
+        self.send_interaction_callback(
             &format!("/interactions/{interaction_id}/{token}/callback"),
-            Some(json!({ "type": 4, "data": data })),
+            json!({ "type": 4, "data": data }),
         )
-        .await?;
-        Ok(())
+        .await
     }
 
     pub async fn fetch_guild(&self, guild: u64) -> Result<Value> {
@@ -509,13 +527,11 @@ impl DiscordApi {
         token: &str,
         data: Value,
     ) -> Result<()> {
-        self.send(
-            reqwest::Method::POST,
+        self.send_interaction_callback(
             &format!("/interactions/{interaction_id}/{token}/callback"),
-            Some(json!({ "type": 4, "data": data })),
+            json!({ "type": 4, "data": data }),
         )
-        .await?;
-        Ok(())
+        .await
     }
 
     pub async fn interaction_modal(
@@ -526,19 +542,17 @@ impl DiscordApi {
         title: &str,
         components: Value,
     ) -> Result<()> {
-        self.send(
-            reqwest::Method::POST,
+        self.send_interaction_callback(
             &format!("/interactions/{interaction_id}/{token}/callback"),
-            Some(json!({
+            json!({
                 "type": 9,
                 "data": {
                     "title": title,
                     "custom_id": custom_id,
                     "components": components
                 }
-            })),
+            }),
         )
-        .await?;
-        Ok(())
+        .await
     }
 }
