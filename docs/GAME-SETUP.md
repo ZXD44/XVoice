@@ -1,4 +1,4 @@
-# 🎙️ XVoice - Proximity System (v4.2.3)
+# 🎙️ XVoice - Proximity System (v4.2.4)
 
 ### ระบบเสียงตามระยะ (Proximity Voice Chat) สำหรับ Minecraft Bedrock
 **พัฒนาโดย:** ZirconX
@@ -15,7 +15,7 @@
 
 ---
 
-## ✨ มีอะไรใหม่ในเวอร์ชัน v4.2.3
+## ✨ มีอะไรใหม่ในเวอร์ชัน v4.2.4
 
 ### 🟢 1. ระบบห้องอัตโนมัติ (High-Performance Auto Grouping)
 บอทจะตรวจจับการเดินเข้าใกล้กัน และจัดการแยก/รวมห้องเสียงให้อัตโนมัติด้วย Proximity Grid Hysteresis

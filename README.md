@@ -1,9 +1,9 @@
-# 🎙️ XVoice v4.2.3 (Advanced Proximity & Radio Engine)
+# 🎙️ XVoice v4.2.4 (Advanced Proximity & Radio Engine)
 
 > ระบบเสียงตามระยะ (Proximity Voice Chat) ความเร็วสูง สำหรับ **Minecraft Bedrock Dedicated Server + Discord**  
 > สถาปัตยกรรมใหม่ ขับเคลื่อนด้วย **Rust Backend (High Performance)** และ **Bedrock Script API**
 
-[![Version](https://img.shields.io/badge/Version-v4.2.3_Latest-blue?style=for-the-badge&logo=rust)](https://github.com/ZXD44/XVoice)
+[![Version](https://img.shields.io/badge/Version-v4.2.4_Latest-blue?style=for-the-badge&logo=rust)](https://github.com/ZXD44/XVoice)
 [![Minecraft Bedrock](https://img.shields.io/badge/Minecraft-Bedrock_BDS_Only-green?style=for-the-badge&logo=minecraft)](https://www.minecraft.net/download/server/bedrock)
 [![Discord API](https://img.shields.io/badge/Discord-Gateway_&_REST-5865F2?style=for-the-badge&logo=discord)](https://discord.com)
 

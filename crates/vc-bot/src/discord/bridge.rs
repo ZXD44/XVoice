@@ -290,7 +290,12 @@ impl Bridge {
                 self.replace_members(members).await;
                 tracing::info!(count, "แคชรายชื่อสมาชิกแล้ว");
             }
-            Err(error) => tracing::error!(%error, "ดึงรายชื่อสมาชิกไม่สำเร็จ (ต้องเปิด Guild Members intent)"),
+            Err(error) => {
+                tracing::warn!(
+                    %error,
+                    "ข้ามการแคชรายชื่อสมาชิกล่วงหน้า (ไม่ได้เปิด Guild Members Intent หรือขาดสิทธิ์) — บอทจะจับคู่ชื่ออัตโนมัติเมื่อผู้ใช้เข้าห้องเสียงหรือกดผูกบัญชี"
+                );
+            }
         }
 
         self.state.bot_online.store(true, Ordering::Relaxed);
