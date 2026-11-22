@@ -41,7 +41,14 @@ export function recordFailure(currentTick) {
 
 export function getEndpoint(path) {
     const cfg = getConfig();
-    return `http://${cfg.ip}:${cfg.port}${path}`;
+    const rawIp = (cfg.ip || "").trim();
+    if (rawIp.startsWith("http://") || rawIp.startsWith("https://")) {
+        return `${rawIp.replace(/\/+$/, "")}${path}`;
+    }
+    if (rawIp.includes("trycloudflare.com") || rawIp.includes(".com") || rawIp.includes(".net") || rawIp.includes(".org")) {
+        return `https://${rawIp.replace(/\/+$/, "")}${path}`;
+    }
+    return `http://${rawIp}:${cfg.port}${path}`;
 }
 
 export function parseJson(body) {

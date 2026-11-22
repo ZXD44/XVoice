@@ -12,8 +12,12 @@ export const voiceState = {
     botAlive: true,
     secretBad: false,
     seq: 0,
-    connected: new Set()
+    connected: new Set(),
+    lastSignature: "",
+    lastSyncTick: 0
 };
+
+const occlusionCache = new Map();
 
 export function nametagFor(player) {
     const props = cachedProps(player);
@@ -70,6 +74,12 @@ export function calculateOcclusionRadius(player, baseRadius) {
         if (!dim) return baseRadius;
 
         const headLoc = player.getHeadLocation ? player.getHeadLocation() : player.location;
+        const cacheKey = `${dim.id}:${Math.floor(headLoc.x)},${Math.floor(headLoc.y)},${Math.floor(headLoc.z)}:${baseRadius}`;
+        const cached = occlusionCache.get(player.name);
+        if (cached && cached.key === cacheKey) {
+            return cached.val;
+        }
+
         // ตรวจสอบบล็อกทึบรอบศีรษะ 4 ทิศ (แกน X, Z ห่าง 1.2 บล็อก)
         const checkOffsets = [
             { x: 1.2, y: 0, z: 0 },
@@ -92,9 +102,13 @@ export function calculateOcclusionRadius(player, baseRadius) {
         }
 
         // หากอยู่ในห้องปิด/มีกำแพงล้อมรอบ 3 ทิศขึ้นไป ลดรัศมีเสียงลง (Dampened)
-        if (solidCount >= 3) {
-            return Math.max(3, Math.round(baseRadius * 0.6 * 10) / 10);
-        }
+        const result = solidCount >= 3
+            ? Math.max(3, Math.round(baseRadius * 0.6 * 10) / 10)
+            : baseRadius;
+
+        if (occlusionCache.size > 100) occlusionCache.clear();
+        occlusionCache.set(player.name, { key: cacheKey, val: result });
+        return result;
     } catch {}
     return baseRadius;
 }
@@ -102,7 +116,7 @@ export function calculateOcclusionRadius(player, baseRadius) {
 export function samplePlayer(player) {
     const location = player.location;
     const props = cachedProps(player);
-    const effectiveRadius = calculateOcclusionRadius(player, props.radius);
+    const effectiveRadius = props.enabled ? calculateOcclusionRadius(player, props.radius) : props.radius;
 
     return {
         name: player.name,
@@ -128,9 +142,24 @@ export function startSyncLoop() {
         }
 
         let snapshot;
+        let signature;
         try {
             const players = world.getPlayers().filter((player) => player?.isValid);
-            snapshot = { seq: ++voiceState.seq, players: players.map(samplePlayer) };
+            if (players.length === 0) {
+                // เซิร์ฟเวอร์ว่าง ไม่มีผู้เล่นออนไลน์ พักการส่งเพื่อประหยัด CPU & Network 100%
+                return;
+            }
+            const sampled = players.map(samplePlayer);
+            signature = sampled
+                .map((p) => `${p.name}|${p.dimension}|${Math.round(p.x)}|${Math.round(p.y)}|${Math.round(p.z)}|${p.radius}|${p.enabled}|${p.verified}|${p.radio_channel}`)
+                .join(";");
+
+            // Delta Sync: ข้ามการส่งถ้าไม่มีใครขยับเกิน 1 บล็อกหรือเปลี่ยนสถานะ (บังคับส่ง keep-alive ทุก 5 วินาที)
+            if (signature === voiceState.lastSignature && (currentTick - voiceState.lastSyncTick) < 100) {
+                return;
+            }
+
+            snapshot = { seq: ++voiceState.seq, players: sampled };
         } catch {
             return;
         }
@@ -153,6 +182,8 @@ export function startSyncLoop() {
                 }
                 recordSuccess();
                 voiceState.secretBad = false;
+                voiceState.lastSignature = signature;
+                voiceState.lastSyncTick = currentTick;
                 setBotAlive(true);
                 voiceState.connected = new Set((data.connected ?? []).map(playerKey));
                 refreshNametags();

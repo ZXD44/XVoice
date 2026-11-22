@@ -28,9 +28,55 @@ export function registerVoiceCommands() {
     // 2. คำสั่ง scriptevent สำหรับแอดมินหรือระบบทดสอบ (/scriptevent vc:ui หรือ vc:pair <รหัส>)
     system.afterEvents.scriptEventReceive.subscribe((event) => {
         const id = event.id.toLowerCase();
-        if (id !== "voice:ui" && id !== "voice:menu" && id !== "vc:ui" && id !== "vc:menu" && id !== "vc:get" && id !== "vc:pair") return;
+        const validIds = ["voice:ui", "voice:menu", "vc:ui", "vc:menu", "vc:get", "vc:pair", "vc:seturl", "vc:setsecret", "vc:reset"];
+        if (!validIds.includes(id)) return;
         const player = event.sourceEntity;
         if (player?.typeId !== "minecraft:player" || !player.isValid) return;
+
+        if (id === "vc:seturl") {
+            if (!player.hasTag("admin")) {
+                player.sendMessage("§c[ระบบเสียง] เฉพาะผู้ดูแล (Admin) เท่านั้นที่สามารถใช้คำสั่งนี้ได้");
+                return;
+            }
+            const url = event.message ? event.message.trim() : "";
+            if (!url) {
+                player.sendMessage("§e[ระบบเสียง] วิธีใช้: /scriptevent vc:seturl <URL เช่น https://xxxx.trycloudflare.com หรือ 127.0.0.1>");
+                return;
+            }
+            world.setDynamicProperty("backendIP", url);
+            player.sendMessage(`§a[ระบบเสียง] อัปเดต Backend URL เรียบร้อย: §e${url}`);
+            player.onScreenDisplay.setActionBar("§a✔ บันทึก URL แล้ว");
+            return;
+        }
+
+        if (id === "vc:setsecret") {
+            if (!player.hasTag("admin")) {
+                player.sendMessage("§c[ระบบเสียง] เฉพาะผู้ดูแล (Admin) เท่านั้นที่สามารถใช้คำสั่งนี้ได้");
+                return;
+            }
+            const secret = event.message ? event.message.trim() : "";
+            if (!secret) {
+                player.sendMessage("§e[ระบบเสียง] วิธีใช้: /scriptevent vc:setsecret <รหัสลับ>");
+                return;
+            }
+            world.setDynamicProperty("apiSecret", secret);
+            player.sendMessage(`§a[ระบบเสียง] อัปเดตรหัสลับเรียบร้อย: §e${secret}`);
+            player.onScreenDisplay.setActionBar("§a✔ บันทึกรหัสลับแล้ว");
+            return;
+        }
+
+        if (id === "vc:reset") {
+            if (!player.hasTag("admin")) {
+                player.sendMessage("§c[ระบบเสียง] เฉพาะผู้ดูแล (Admin) เท่านั้นที่สามารถใช้คำสั่งนี้ได้");
+                return;
+            }
+            world.setDynamicProperty("backendIP", undefined);
+            world.setDynamicProperty("backendPort", undefined);
+            world.setDynamicProperty("apiSecret", undefined);
+            player.sendMessage("§a[ระบบเสียง] รีเซ็ตการตั้งค่า Backend กลับเป็นค่ามาตรฐาน (127.0.0.1:3000) แล้ว");
+            player.onScreenDisplay.setActionBar("§a✔ รีเซ็ตค่ามาตรฐานแล้ว");
+            return;
+        }
 
         if (id === "vc:pair") {
             if (!player.hasTag("admin")) {
