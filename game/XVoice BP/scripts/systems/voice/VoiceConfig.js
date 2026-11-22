@@ -12,11 +12,11 @@ export const PARTICLE_INTERVAL = 20; // 1 วินาที
 export const HEARTBEAT_INTERVAL = 1200; // 1 นาที
 export const MIN_RADIUS = 5;
 export const MAX_RADIUS = 10;
-export const HTTP_TIMEOUT = 5; // วินาที
+export const HTTP_TIMEOUT = 2; // วินาที (Fast-fail ป้องกัน Script API รอค้าง)
 
 export const DEFAULT_IP = "127.0.0.1";
 export const DEFAULT_PORT = "3000";
-export const DEFAULT_SECRET = "mcpe-voice-secret-zirconx";
+export const DEFAULT_SECRET = "xv-4fqv8tyg9sxn";
 
 export function generateShortSecret(length = 8) {
     const chars = "abcdefghjkmnpqrstuvwxyz23456789";

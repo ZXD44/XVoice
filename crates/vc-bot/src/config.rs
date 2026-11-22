@@ -90,10 +90,10 @@ impl Config {
             bind: var("BIND_ADDR")
                 .or_else(|| {
                     var("PORT").map(|p| {
-                        format!("0.0.0.0:{p}")
+                        format!("127.0.0.1:{p}")
                     })
                 })
-                .unwrap_or_else(|| "0.0.0.0:3000".into())
+                .unwrap_or_else(|| "127.0.0.1:3000".into())
                 .parse()
                 .context("BIND_ADDR / PORT ไม่ถูกต้อง")?,
             zone_prefix: var("ZONE_PREFIX").unwrap_or_else(|| "ห้องที่ ".to_string()),

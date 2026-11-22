@@ -206,13 +206,22 @@ struct PairVerifyRequest {
 }
 
 /// สร้าง OTP 6 หลักสำหรับจับคู่ (เรียกจากคำสั่งใน Discord หรือแอดมิน)
-async fn pair_request(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+async fn pair_request(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
+    if !authorized(&state, &headers) {
+        return rejected();
+    }
     use std::time::{Duration, Instant};
-    // สุ่มเลข 6 หลัก 100000 - 999999
-    let code = format!("{:06}", (std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos() % 900000 + 100000) as u32);
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos();
+    let code = format!("{:06}", (nanos % 900000 + 100000) as u32);
     let expires = Instant::now() + Duration::from_secs(300); // 5 นาที
 
-    *state.pair_code.lock().unwrap() = Some((code.clone(), expires));
+    *state.pair_code.lock().unwrap_or_else(|e| e.into_inner()) = Some((code.clone(), expires));
     tracing::info!(code = %code, "สร้างรหัสจับคู่ Pairing Code สำเร็จ (อายุ 5 นาที)");
 
     Json(json!({
@@ -220,6 +229,7 @@ async fn pair_request(State(state): State<Arc<AppState>>) -> impl IntoResponse {
         "code": code,
         "expires_in": 300
     }))
+    .into_response()
 }
 
 /// เกมส่งรหัส OTP 6 หลักมาขอรับ API_SECRET
@@ -228,27 +238,37 @@ async fn pair_verify(
     Json(req): Json<PairVerifyRequest>,
 ) -> impl IntoResponse {
     use std::time::Instant;
-    let mut lock = state.pair_code.lock().unwrap();
-    if let Some((stored_code, expires)) = lock.take() {
-        if Instant::now() <= expires && stored_code == req.code.trim() {
+    let mut lock = state.pair_code.lock().unwrap_or_else(|e| e.into_inner());
+    if let Some((stored_code, expires)) = lock.as_ref() {
+        if Instant::now() > *expires {
+            *lock = None;
+        } else if stored_code.as_bytes().ct_eq(req.code.trim().as_bytes()).into() {
+            *lock = None;
             tracing::info!("เกมตรวจสอบรหัสจับคู่ถูกต้อง -> ส่งมอบ API_SECRET สำเร็จ");
             return Json(json!({
                 "status": "ok",
                 "secret": state.cfg.api_secret
-            })).into_response();
+            }))
+            .into_response();
         }
     }
 
     (StatusCode::BAD_REQUEST, Json(json!({
         "status": "error",
         "message": "รหัสจับคู่ไม่ถูกต้องหรือหมดอายุแล้ว"
-    }))).into_response()
+    })))
+    .into_response()
 }
 
 async fn health(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let update = state.last_update.lock().unwrap().clone().unwrap_or_default();
+    let update = state
+        .last_update
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .clone()
+        .unwrap_or_default();
     let (rooms, tracked) = {
-        let planner = state.planner.lock().unwrap();
+        let planner = state.planner.lock().unwrap_or_else(|e| e.into_inner());
         (planner.room_count(), planner.tracked_players())
     };
     let online = state.bot_online.load(std::sync::atomic::Ordering::Relaxed);

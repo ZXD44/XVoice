@@ -5,6 +5,7 @@
 import { system, world, Player } from "@minecraft/server";
 import {
     CustomForm,
+    ModalFormData,
     ObservableNumber,
     ObservableBoolean,
     DataDrivenScreenClosedReason
@@ -195,23 +196,95 @@ export class VoiceUI {
         );
         form.spacer();
 
-        form.button("จับคู่ด้วยรหัส\nAuto-Pairing Code", () => {
+        form.button("จับคู่ด้วยรหัส\nกรอกรหัสจากดิสคอร์ด", () => {
             form.close();
             system.run(() => {
-                player.sendMessage("§e[ระบบเสียง] ขั้นตอนจับคู่อัตโนมัติ:");
-                player.sendMessage("§f 1. เข้าห้องแชต Discord แล้วพิมพ์คำสั่ง: §b!pair");
-                player.sendMessage("§f 2. นำรหัส 6 หลักมาพิมพ์ในเกม: §a/scriptevent vc:pair <รหัส>");
-                player.onScreenDisplay.setActionBar("§eพิมพ์ !pair ใน Discord แล้วใช้ /scriptevent vc:pair");
+                const modal = new ModalFormData();
+                modal.title("จับคู่ระบบเสียงดิสคอร์ด");
+                modal.textField("พิมพ์ !pair ในห้องแชต Discord แล้วนำรหัส 6 หลักมากรอกที่นี่:\n§8(ระบบจะเชื่อมต่อให้อัตโนมัติในหน้านี้)", "รหัส 6 หลัก เช่น 123456");
+                modal.show(player).then(async (res) => {
+                    if (res.canceled) {
+                        VoiceUI.openAdmin(player);
+                        return;
+                    }
+                    const [code] = res.formValues;
+                    const cleanCode = typeof code === "string" ? code.trim() : "";
+                    if (!cleanCode || cleanCode.length !== 6) {
+                        player.onScreenDisplay.setActionBar("§c✗ รหัสต้องมี 6 หลัก");
+                        VoiceUI.openAdmin(player);
+                        return;
+                    }
+                    player.onScreenDisplay.setActionBar("§eกำลังเชื่อมต่อจับคู่...");
+                    try {
+                        const verifyRes = await postJson("/api/pair/verify", { code: cleanCode });
+                        if (verifyRes.status === 200 && verifyRes.data?.secret) {
+                            world.setDynamicProperty("apiSecret", verifyRes.data.secret);
+                            player.sendMessage("§a[ระบบเสียง] จับคู่กับ Discord สำเร็จแล้ว!");
+                            player.onScreenDisplay.setActionBar("§a✔ จับคู่ดิสคอร์ดสำเร็จ");
+                        } else {
+                            player.onScreenDisplay.setActionBar("§c✗ รหัสไม่ถูกต้องหรือหมดอายุ");
+                        }
+                    } catch {
+                        player.onScreenDisplay.setActionBar("§c✗ เชื่อมต่อกับบอทไม่สำเร็จ");
+                    }
+                    VoiceUI.openAdmin(player);
+                });
             });
         });
         form.spacer();
 
-        form.button("สุ่มรหัสลับใหม่\nAuto-Generate Secret", () => {
+        form.button("ตั้งค่า URL เชื่อมต่อ\nใส่ลิงก์หรือไอพี", () => {
+            form.close();
+            system.run(() => {
+                const modal = new ModalFormData();
+                modal.title("กำหนด Backend URL");
+                modal.textField("URL บอท หรือ ลิงก์ Tunnel:\n§8(เช่น https://xxxx.trycloudflare.com หรือ 127.0.0.1)", "https://...", cfg.ip);
+                modal.show(player).then((res) => {
+                    if (res.canceled) {
+                        VoiceUI.openAdmin(player);
+                        return;
+                    }
+                    const [val] = res.formValues;
+                    if (typeof val === "string" && val.trim()) {
+                        world.setDynamicProperty("backendIP", val.trim());
+                        player.sendMessage(`§a[ระบบเสียง] ตั้งค่า Backend URL: §e${val.trim()}`);
+                        player.onScreenDisplay.setActionBar("§a✔ บันทึก URL เรียบร้อย");
+                    }
+                    VoiceUI.openAdmin(player);
+                });
+            });
+        });
+        form.spacer();
+
+        form.button("กำหนดรหัสลับเอง\nตั้งค่ารหัสลับด้วยตนเอง", () => {
+            form.close();
+            system.run(() => {
+                const modal = new ModalFormData();
+                modal.title("กำหนดรหัสลับ API Secret");
+                modal.textField("รหัสลับ API Secret ใน config.env:\n§8(ต้องตรงกับในบอท)", "รหัสลับ", cfg.secret);
+                modal.show(player).then((res) => {
+                    if (res.canceled) {
+                        VoiceUI.openAdmin(player);
+                        return;
+                    }
+                    const [val] = res.formValues;
+                    if (typeof val === "string" && val.trim()) {
+                        world.setDynamicProperty("apiSecret", val.trim());
+                        player.sendMessage(`§a[ระบบเสียง] บันทึกรหัสลับ: §e${val.trim()}`);
+                        player.onScreenDisplay.setActionBar("§a✔ บันทึกรหัสลับแล้ว");
+                    }
+                    VoiceUI.openAdmin(player);
+                });
+            });
+        });
+        form.spacer();
+
+        form.button("สุ่มรหัสลับใหม่\nสุ่มรหัสอัตโนมัติ", () => {
             form.close();
             system.run(() => {
                 const newSecret = generateShortSecret();
                 world.setDynamicProperty("apiSecret", newSecret);
-                player.sendMessage(`§a[ระบบเสียง] §fสุ่มรหัสลับใหม่แล้ว: §e${newSecret}`);
+                player.sendMessage(`§a[ระบบเสียง] สุ่มรหัสลับใหม่แล้ว: §e${newSecret}`);
                 player.sendMessage("§8• อย่าลืมนำรหัสนี้ไปใส่ใน API_SECRET ของ config.env ในบอท");
                 player.onScreenDisplay.setActionBar(`§a✔ สุ่มรหัสใหม่: §e${newSecret}`);
                 this.openAdmin(player);
@@ -219,7 +292,7 @@ export class VoiceUI {
         });
         form.spacer();
 
-        form.button("รีเซ็ตเป็นค่าเดิม\nล้างการตั้งค่าแอดมิน", () => {
+        form.button("รีเซ็ตเป็นค่าเดิม\nล้างการตั้งค่าทั้งหมด", () => {
             form.close();
             system.run(() => {
                 world.setDynamicProperty("backendIP", undefined);
