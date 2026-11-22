@@ -1,9 +1,9 @@
-# 🎙️ XVoice v4.2.4 (Advanced Proximity & Radio Engine)
+# 🎙️ XVoice v4.2.5 (Advanced Proximity & Radio Engine)
 
 > ระบบเสียงตามระยะ (Proximity Voice Chat) ความเร็วสูง สำหรับ **Minecraft Bedrock Dedicated Server + Discord**  
 > สถาปัตยกรรมใหม่ ขับเคลื่อนด้วย **Rust Backend (High Performance)** และ **Bedrock Script API**
 
-[![Version](https://img.shields.io/badge/Version-v4.2.4_Latest-blue?style=for-the-badge&logo=rust)](https://github.com/ZXD44/XVoice)
+[![Version](https://img.shields.io/badge/Version-v4.2.5_Latest-blue?style=for-the-badge&logo=rust)](https://github.com/ZXD44/XVoice)
 [![Minecraft Bedrock](https://img.shields.io/badge/Minecraft-Bedrock_BDS_Only-green?style=for-the-badge&logo=minecraft)](https://www.minecraft.net/download/server/bedrock)
 [![Discord API](https://img.shields.io/badge/Discord-Gateway_&_REST-5865F2?style=for-the-badge&logo=discord)](https://discord.com)
 
@@ -19,7 +19,7 @@
 * 🧱 **3D Occlusion & Wall Dampening (ระบบกำแพงลดทอนเสียง)**:
   - ตรวจจับบล็อกทึบระดับสายตา หากอยู่ในห้องหรือมีกำแพงล้อมรอบ จะลดรัศมีเสียงลง 40% อัตโนมัติ เพิ่มความสมจริงในเชิง Roleplay
 * 🔄 **ระบบจับคู่อัตโนมัติ (Auto-Pairing Handshake)**:
-  - พิมพ์ `!pair` ใน Discord รับรหัส 6 หลัก แล้วนำมาใส่ผ่าน `/scriptevent vc:pair` ในเกมเพื่อผูกรหัสลับอัตโนมัติ ไม่ต้องเปิดไฟล์แก้เอง
+  - พิมพ์ `!pair` ใน Discord รับรหัส 6 หลัก แล้วนำมากรอกในเมนูไอเทมรีโมท "จับคู่ด้วยรหัส" ในเกมได้ทันที 100% UI ไม่ต้องพิมพ์คำสั่งในแชต
 * ⚡ **Circuit Breaker & Exponential Backoff**:
   - เมื่อบอทปิดหรือหลุด ระบบเกมจะชะลอการยิง Request เพื่อลดโหลด CPU เซิร์ฟเวอร์ BDS และป้องกัน Error สแปมคอนโซล
 * 🔗 **ระบบผูกบัญชี Discord สะดวก (`!link`)**:

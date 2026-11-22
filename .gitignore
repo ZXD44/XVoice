@@ -1,49 +1,83 @@
 # ═══════════════════════════════════════════════════════════════════════════
-# 🛡️ ZirconX - VoiceChat Git Ignore Configuration
+# 🛡️ XVoice Standalone Public Distribution — .gitignore
 # ═══════════════════════════════════════════════════════════════════════════
+# สำหรับคลังแจกจ่ายสาธารณะ (https://github.com/ZXD44/XVoice.git)
+# บล็อกข้อมูลลับส่วนตัว (Secrets), ไบนารีขนาดใหญ่, แคช, และไฟล์เฉพาะเซิร์ฟเวอร์ 100%
 
-# Generic OS & IDE files
+# 🔒 1. CRITICAL SECURITY, SECRETS & TOKENS (ห้ามหลุดสู่ภายนอกเด็ดขาด)
+*agentx*
+.agentx*
+config.env
+config.env.*
+config.env.local
+*.env
+*.env.*
+*.env.local
+secrets.json
+links.json
+token*.json
+*.pem
+*.key
+*.cert
+*.pfx
+
+# 🚫 2. COMPILED BINARIES & HEAVY EXECUTABLES (ให้ดาวน์โหลดผ่าน GitHub Releases แทน)
+/target/
+target/
+dist/
+*.exe
+*.dll
+*.so
+*.dylib
+*.pdb
+zircon-voice
+zircon-voice-*
+zircon_voice*
+cloudflared*
+cloudflared.exe
+
+# 📦 3. COMPRESSED PACKAGES & MINECRAFT BUILDS
+*.zip
+*.tar
+*.gz
+*.rar
+*.7z
+*.mcpack
+*.mcaddon
+*.mcworld
+
+# 📝 4. RUNTIME LOGS & TEMPORARY FILES
+*.log
+*.tmp
+/tmp/
+voice.log
+server_console.log
+bot_log.txt*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 🐍 5. PYTHON BYTECODE & CACHE (สำหรับ XVoice/run.py)
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# 💻 6. OS & IDE METADATA
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
 *.sublime-project
 *.sublime-workspace
-
-# Node.js & DiscordBot
 node_modules/
-DiscordBot/node_modules/
-DiscordBot/.env
-DiscordBot/config.env
-DiscordBot/bot_log.txt*
-DiscordBot/npm-debug.log*
-DiscordBot/yarn-debug.log*
-DiscordBot/yarn-error.log*
 **/node_modules/
 
-# Logs & Temporary files
-*.log
-*.tmp
-/tmp/
-
-# Minecraft Build Artifacts (Keep source, hide binary)
-*.mcpack
-*.mcaddon
-*.mcworld
-*.zip
-
-# Sensitive Information - [IMPORTANT] Ensure secrets are NEVER committed
-secrets.json
-*.env.local
-*.env.development.local
-*.env.test.local
-*.env.production.local
-
-# Rust backend
-/target
-config.env
-config.env.local
-links.json
-*.log
-*.exe
-zircon-voice*
+# 🛑 7. SERVER ISOLATION GUARD (ป้องกันไฟล์ของเซิร์ฟเวอร์หลักปะปน)
+worlds/
+definitions/
+data/
+treatments/
+world_templates/
+bedrock_server*
+.agents/

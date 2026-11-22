@@ -76,7 +76,7 @@ x-api-key: <API_SECRET>
 ```json
 {
   "status": "alive",
-  "version": "4.2.4",
+  "version": "4.2.5",
   "uptime": 3600,
   "seq": 4210,
   "pairs": 4,

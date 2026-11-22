@@ -1,6 +1,6 @@
 {
-  "version": "4.2.4",
+  "version": "4.2.5",
   "name": "XVoice",
   "author": "ZirconX",
-  "release_name": "v4.2.4 - Interaction Fast-Path & Graceful Intent Handling"
+  "release_name": "v4.2.5 - Admin Pairing Button in Dashboard Panel (Zero Chat Command)"
 }
