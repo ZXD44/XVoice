@@ -71,6 +71,21 @@ impl AppState {
         })
     }
 
+    /// สุ่มรหัส OTP 6 หลักสำหรับจับคู่ (อายุ 5 นาที)
+    pub fn generate_pair_code(&self) -> String {
+        use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos();
+        let code = format!("{:06}", (nanos % 900000 + 100000) as u32);
+        let expires = Instant::now() + Duration::from_secs(300);
+
+        *self.pair_code.lock().unwrap_or_else(|e| e.into_inner()) = Some((code.clone(), expires));
+        tracing::info!(code = %code, "สร้างรหัสจับคู่ Pairing Code สำเร็จ (อายุ 5 นาที)");
+        code
+    }
+
     /// Fold a positional snapshot in and queue the resulting room plan.
     pub fn ingest(&self, snapshot: &Snapshot) -> (Update, Layout) {
         let update = {

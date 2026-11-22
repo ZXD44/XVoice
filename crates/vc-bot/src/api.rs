@@ -213,17 +213,7 @@ async fn pair_request(
     if !authorized(&state, &headers) {
         return rejected();
     }
-    use std::time::{Duration, Instant};
-    let nanos = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_nanos();
-    let code = format!("{:06}", (nanos % 900000 + 100000) as u32);
-    let expires = Instant::now() + Duration::from_secs(300); // 5 นาที
-
-    *state.pair_code.lock().unwrap_or_else(|e| e.into_inner()) = Some((code.clone(), expires));
-    tracing::info!(code = %code, "สร้างรหัสจับคู่ Pairing Code สำเร็จ (อายุ 5 นาที)");
-
+    let code = state.generate_pair_code();
     Json(json!({
         "status": "ok",
         "code": code,

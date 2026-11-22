@@ -4,7 +4,7 @@ use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
 use anyhow::{Context as _, Result};
-use serde_json::json;
+use serde_json::{json, Value};
 use serenity::all::{
     ActionRowComponent, Client, Context, EventHandler, GatewayIntents, GuildMemberUpdateEvent,
     Interaction, Member, Message, Ready, User, VoiceState,
@@ -309,6 +309,44 @@ impl EventHandler for Handler {
                         )
                         .await;
                     }
+                    "admin_pair_code" => {
+                        let guild_id = self.bridge.cfg.guild_id;
+                        let mut is_admin = false;
+
+                        // 1. ตรวจสอบสิทธิ์จาก Permissions ของ Member (Administrator หรือ Manage Guild)
+                        if let Some(member) = &component.member {
+                            if let Some(perms) = member.permissions {
+                                if perms.administrator() || perms.manage_guild() {
+                                    is_admin = true;
+                                }
+                            }
+                        }
+
+                        // 2. ตรวจสอบว่าเป็น Server Owner หรือไม่
+                        if !is_admin && guild_id > 0 {
+                            if let Ok(guild_info) = self.bridge.api.fetch_guild(guild_id).await {
+                                let owner_id = guild_info
+                                    .get("owner_id")
+                                    .and_then(Value::as_str)
+                                    .and_then(|id| id.parse::<u64>().ok())
+                                    .unwrap_or(0);
+                                if user_id == owner_id {
+                                    is_admin = true;
+                                }
+                            }
+                        }
+
+                        if !is_admin {
+                            reply("❌ **เฉพาะผู้ดูแลเซิร์ฟเวอร์ (Admin หรือ Server Owner)** เท่านั้นที่สามารถขอรับรหัสจับคู่ได้".into(), true).await;
+                            return;
+                        }
+
+                        let code = self.bridge.state.generate_pair_code();
+                        let reply_msg = format!(
+                            "🔑 **รหัสจับคู่ระบบเสียง (Auto-Pairing Code)**:\n\n# **`{code}`**\n\n*(รหัสนี้มีอายุ 5 นาที — นำรหัส 6 หลักนี้ไปกรอกในเมนูไอเทมรีโมทดิสคอร์ดที่ปุ่ม **'จับคู่ด้วยรหัส'** ในเกมได้ทันที)*"
+                        );
+                        reply(reply_msg, true).await;
+                    }
                     "select_guide_menu" => {
                         let selected = match &component.data.kind {
                             serenity::all::ComponentInteractionDataKind::StringSelect { values } => {
@@ -323,6 +361,13 @@ impl EventHandler for Handler {
                                 2. พิมพ์ชื่อตัวละครในเกมของคุณให้ถูกต้อง (เช่น Steve หรือ Alex)\n\
                                 3. เข้าห้องเสียง **Lobby** ใน Discord\n\
                                 4. เข้าเกม Minecraft แล้วเดินเข้าใกล้เพื่อน ไมค์จะเปิดให้คุยทันที!"
+                            }
+                            "guide_pair" => {
+                                "🔑 **วิธีจับคู่ระบบเสียง (Auto-Pairing สำหรับแอดมิน)**:\n\
+                                1. กดปุ่ม **\"รับรหัสจับคู่ (เฉพาะแอดมิน)\"** ด้านล่างนี้\n\
+                                2. บอทจะแสดงรหัส OTP 6 หลัก (ข้อความส่วนตัว ชั่วคราว 5 นาที)\n\
+                                3. เข้าเกม Minecraft ถือรีโมทดิสคอร์ด ➜ เมนูแอดมิน ➜ กด **\"จับคู่ด้วยรหัส\"**\n\
+                                4. กรอกรหัส 6 หลักในหน้าต่างเกม แล้วกดยืนยัน ระบบจะเชื่อมต่อทันที 100% UI"
                             }
                             "guide_remote" => {
                                 "📱 **วิธีใช้งานไอเทมรีโมทดิสคอร์ด (Discord Remote)**:\n\

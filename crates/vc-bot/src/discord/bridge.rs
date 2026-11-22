@@ -427,6 +427,12 @@ impl Bridge {
                                     "emoji": { "name": "🔗" }
                                 },
                                 {
+                                    "label": ":: จับคู่ระบบเสียง (เฉพาะแอดมิน)",
+                                    "value": "guide_pair",
+                                    "description": "╰ กดปุ่มกุญแจสีเทาด้านล่าง เพื่อขอรับรหัส 6 หลักไปใส่ในเกม",
+                                    "emoji": { "name": "🔑" }
+                                },
+                                {
                                     "label": ":: วิธีใช้ไอเทมรีโมท (Discord Remote)",
                                     "value": "guide_remote",
                                     "description": "╰ ถือไอเทมรีโมทกดใช้งาน เพื่อปรับระยะเสียงและเอฟเฟกต์วงแหวน",
@@ -484,6 +490,18 @@ impl Bridge {
                             "label": "ยกเลิกการผูก",
                             "emoji": { "name": "❌" },
                             "custom_id": "unlink_my_account"
+                        }
+                    ]
+                },
+                {
+                    "type": 1,
+                    "components": [
+                        {
+                            "type": 2,
+                            "style": 2,
+                            "label": "รับรหัสจับคู่ (เฉพาะแอดมิน)",
+                            "emoji": { "name": "🔑" },
+                            "custom_id": "admin_pair_code"
                         }
                     ]
                 }
