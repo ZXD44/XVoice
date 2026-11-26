@@ -260,11 +260,27 @@ impl RoomPlanner {
                     });
                 }
                 None => {
-                    let name = self.alloc_name();
-                    rooms.push(DesiredRoom {
-                        slot: Slot::New { name },
-                        members: group.members.clone(),
-                    });
+                    // หากมีห้องว่างที่ยังไม่ได้ลบอยู่ ให้ดึงกลับมาใช้ซ้ำ (เรียงตามชื่อ เช่น ห้องที่ 1 ก่อน) แทนการสร้างห้องใหม่
+                    let reusable = self
+                        .rooms
+                        .iter()
+                        .filter(|(id, room)| !claimed.contains(id) && room.members.is_empty())
+                        .min_by(|a, b| a.1.name.cmp(&b.1.name).then(a.0.cmp(b.0)))
+                        .map(|(id, _)| *id);
+
+                    if let Some(channel) = reusable {
+                        claimed.insert(channel);
+                        rooms.push(DesiredRoom {
+                            slot: Slot::Keep(channel),
+                            members: group.members.clone(),
+                        });
+                    } else {
+                        let name = self.alloc_name();
+                        rooms.push(DesiredRoom {
+                            slot: Slot::New { name },
+                            members: group.members.clone(),
+                        });
+                    }
                 }
             }
         }

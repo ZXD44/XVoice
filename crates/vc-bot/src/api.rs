@@ -25,6 +25,7 @@ pub fn router(state: Arc<AppState>) -> Router {
         .route("/api/proximity", post(legacy))
         .route("/api/check", post(check))
         .route("/api/unmute", post(unmute))
+        .route("/api/radio", post(radio))
         .route("/api/reset", post(reset))
         .route("/api/pair/request", post(pair_request))
         .route("/api/pair/verify", post(pair_verify))
@@ -57,6 +58,10 @@ struct SyncResponse {
     groups: usize,
     /// Flat list of players that should hear each other, for in-game nametags.
     connected: Vec<String>,
+    /// รายชื่อผู้เล่นที่กำลังอยู่ในห้องเสียง Discord (รวม Lobby)
+    in_voice: Vec<String>,
+    /// รายชื่อผู้เล่นที่กำลังอยู่ในห้องวิทยุสาธารณะ
+    in_radio: Vec<String>,
 }
 
 async fn sync(
@@ -75,6 +80,8 @@ async fn sync(
         .iter()
         .flat_map(|g| g.members.iter().cloned())
         .collect();
+    let in_voice = state.in_voice.lock().unwrap().clone();
+    let in_radio = state.in_radio.lock().unwrap().clone();
 
     Json(SyncResponse {
         status: "ok",
@@ -82,6 +89,8 @@ async fn sync(
         pairs: update.active_pairs,
         groups: update.groups.len(),
         connected,
+        in_voice,
+        in_radio,
     })
     .into_response()
 }
@@ -203,6 +212,33 @@ async fn reset(
 #[derive(Deserialize)]
 struct PairVerifyRequest {
     code: String,
+}
+
+#[derive(Deserialize)]
+struct RadioRequest {
+    player: String,
+    join: bool,
+}
+
+async fn radio(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Json(req): Json<RadioRequest>,
+) -> impl IntoResponse {
+    if !authorized(&state, &headers) {
+        return rejected();
+    }
+    let (ack_tx, ack_rx) = tokio::sync::oneshot::channel();
+    let _ = state.tx.send(crate::state::BotCommand::JoinRadio {
+        player: req.player,
+        join: req.join,
+        ack: ack_tx,
+    });
+    match tokio::time::timeout(std::time::Duration::from_secs(5), ack_rx).await {
+        Ok(Ok(Ok(msg))) => Json(json!({ "status": "ok", "success": true, "message": msg })).into_response(),
+        Ok(Ok(Err(err))) => Json(json!({ "status": "error", "success": false, "message": err })).into_response(),
+        _ => Json(json!({ "status": "error", "success": false, "message": "timeout" })).into_response(),
+    }
 }
 
 /// สร้าง OTP 6 หลักสำหรับจับคู่ (เรียกจากคำสั่งใน Discord หรือแอดมิน)

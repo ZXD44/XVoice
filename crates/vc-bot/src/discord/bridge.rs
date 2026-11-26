@@ -48,6 +48,7 @@ pub struct Bridge {
     ready_notify: Notify,
     pub bot_id: AtomicU64,
     pub lobby_channel_id: AtomicU64,
+    pub radio_channel_id: AtomicU64,
     pub category_id: AtomicU64,
     members: RwLock<HashMap<String, MemberRef>>,
     pub voices: RwLock<HashMap<u64, VoiceInfo>>,
@@ -59,6 +60,7 @@ impl Bridge {
     pub fn new(cfg: Arc<Config>, state: Arc<AppState>) -> Result<Arc<Self>> {
         let api = Arc::new(DiscordApi::new(cfg.token.clone())?);
         let lobby_channel_id = AtomicU64::new(cfg.lobby_channel_id);
+        let radio_channel_id = AtomicU64::new(0);
         let category_id = AtomicU64::new(cfg.category_id.unwrap_or(0));
         Ok(Arc::new(Self {
             cfg,
@@ -68,6 +70,7 @@ impl Bridge {
             ready_notify: Notify::new(),
             bot_id: AtomicU64::new(0),
             lobby_channel_id,
+            radio_channel_id,
             category_id,
             members: RwLock::new(HashMap::new()),
             voices: RwLock::new(HashMap::new()),
@@ -82,6 +85,14 @@ impl Bridge {
 
     pub fn set_lobby_channel_id(&self, id: u64) {
         self.lobby_channel_id.store(id, Ordering::Relaxed);
+    }
+
+    pub fn get_radio_channel_id(&self) -> u64 {
+        self.radio_channel_id.load(Ordering::Relaxed)
+    }
+
+    pub fn set_radio_channel_id(&self, id: u64) {
+        self.radio_channel_id.store(id, Ordering::Relaxed);
     }
 
     pub fn get_category_id(&self) -> Option<u64> {
@@ -106,18 +117,27 @@ impl Bridge {
         if key.is_empty() {
             return;
         }
-        let mut links = self.links.write().await;
-        links.insert(key, user);
-        save_links(&links);
+        {
+            let mut links = self.links.write().await;
+            links.insert(key, user);
+            save_links(&links);
+        }
+        self.sync_in_voice().await;
     }
 
     pub async fn unlink_account(&self, user: u64) -> bool {
-        let mut links = self.links.write().await;
-        let before = links.len();
-        links.retain(|_, u| *u != user);
-        let removed = links.len() != before;
+        let removed = {
+            let mut links = self.links.write().await;
+            let before = links.len();
+            links.retain(|_, u| *u != user);
+            let removed = links.len() != before;
+            if removed {
+                save_links(&links);
+            }
+            removed
+        };
         if removed {
-            save_links(&links);
+            self.sync_in_voice().await;
         }
         removed
     }
@@ -154,8 +174,44 @@ impl Bridge {
         self.voices.read().await.get(&user).copied().unwrap_or_default()
     }
 
+    pub async fn sync_in_voice(&self) {
+        let radio_id = self.get_radio_channel_id();
+        let mut active_users = std::collections::HashSet::new();
+        let mut radio_users = std::collections::HashSet::new();
+        for (uid, info) in self.voices.read().await.iter() {
+            if let Some(ch) = info.channel {
+                active_users.insert(*uid);
+                if radio_id > 0 && ch == radio_id {
+                    radio_users.insert(*uid);
+                }
+            }
+        }
+
+        let mut names = std::collections::HashSet::new();
+        let mut r_names = std::collections::HashSet::new();
+        for (gamertag, uid) in self.links.read().await.iter() {
+            if active_users.contains(uid) {
+                names.insert(gamertag.clone());
+            }
+            if radio_users.contains(uid) {
+                r_names.insert(gamertag.clone());
+            }
+        }
+        for (key, m) in self.members.read().await.iter() {
+            if active_users.contains(&m.id) {
+                names.insert(key.clone());
+            }
+            if radio_users.contains(&m.id) {
+                r_names.insert(key.clone());
+            }
+        }
+        *self.state.in_voice.lock().unwrap() = names.into_iter().collect();
+        *self.state.in_radio.lock().unwrap() = r_names.into_iter().collect();
+    }
+
     pub async fn set_voice(&self, user: u64, channel: Option<u64>) {
         self.voices.write().await.entry(user).or_default().channel = channel;
+        self.sync_in_voice().await;
     }
 
     pub async fn set_mute(&self, user: u64, mute: bool) {
@@ -268,6 +324,18 @@ impl Bridge {
                         map.insert(id, channel.name.clone());
                         if id != 0 && self.is_zone_name(&channel.name) {
                             zones.push((id, channel.name.clone()));
+                        } else if id != 0
+                            && (channel.name.contains("ล็อบบี้")
+                                || channel.name.to_lowercase().contains("lobby"))
+                        {
+                            self.set_lobby_channel_id(id);
+                            tracing::info!(lobby_id = id, name = %channel.name, "ตรวจพบห้อง Lobby อัตโนมัติ");
+                        } else if id != 0
+                            && (channel.name.contains("คลื่นวิทยุ")
+                                || channel.name.to_lowercase().contains("radio"))
+                        {
+                            self.set_radio_channel_id(id);
+                            tracing::info!(radio_id = id, name = %channel.name, "ตรวจพบห้องวิทยุสาธารณะอัตโนมัติ");
                         }
                     }
                 }
@@ -406,10 +474,25 @@ impl Bridge {
     pub fn dashboard_panel_payload() -> Value {
         json!({
             "embeds": [{
-                "title": "🎙️ ศูนย์ควบคุมระบบเสียงตามระยะ (XVoice)",
-                "color": 0x5865F2,
-                "description": "**🟢 ระบบพร้อมใช้งาน (Bedrock 1.26+ Proximity Engine)**\n\nเชื่อมต่อตัวละคร Minecraft ของคุณกับ Discord เพื่อพูดคุยตามระยะจริงในเกม\nระบบทำงานผ่าน **\"ไอเทมในเกมโดยตรง\"** ไม่ต้องพิมพ์คำสั่งใดๆ ทั้งสิ้น!\n\n📱 **ไอเทมรีโมท**: ถือไอเทมรีโมทดิสคอร์ด กดใช้งานเพื่อปรับระยะเสียง (5-10 บล็อก)\n📻 **ไอเทมวิทยุ**: ถือไอเทมวิทยุสื่อสาร กดใช้งานเพื่อเลือกคลื่นสัญญาณ 1 - 5 คุยข้ามมิติ\n🎙️ **ระบบเสียงตามระยะ**: เข้าใกล้เพื่อนไมค์จะเปิดเองอัตโนมัติ ยิ่งใกล้ยิ่งดัง\n🧱 **ระบบกำแพงลดทอนเสียง**: อยู่ในอาคารหรือห้องปิด เสียงจะทึบลง 40% (3D Occlusion)",
-                "footer": { "text": "XVoice v4.2.2 • Bedrock Proximity & Radio Engine" }
+                "title": "XVoice • ระบบเสียงตามระยะ",
+                "color": 0xF59E0B,
+                "description": "> **ONLINE** • Bedrock 1.26+ Proximity & Radio\n\nพูดคุยตามระยะจริงในเกมผ่าน **ไอเทมในเกม** ไม่ต้องพิมพ์คำสั่ง",
+                "fields": [
+                    {
+                        "name": "อุปกรณ์เสียงในเกม",
+                        "value": "รีโมท ปรับระยะ `5–10` บล็อก\nวิทยุ จูนคลื่น `1–5` ข้ามแมป",
+                        "inline": true
+                    },
+                    {
+                        "name": "ระบบเสียง 3D",
+                        "value": "ระยะใกล้ เปิดไมค์อัตโนมัติ\nกำแพงกั้น เสียงทึบลง `40%`",
+                        "inline": true
+                    }
+                ],
+                "image": {
+                    "url": "https://cdn.discordapp.com/banners/1573315532550311936/474e4e6542a35b9a2f73d000822eb382?size=1024"
+                },
+                "footer": { "text": "XVoice v4.2.5 • Lost Camp Voice Engine" }
             }],
             "components": [
                 {
@@ -418,43 +501,37 @@ impl Bridge {
                         {
                             "type": 3,
                             "custom_id": "select_guide_menu",
-                            "placeholder": "✏️ ・เลือกคู่มือการใช้งานไอเทม & ระบบเสียง",
+                            "placeholder": "เลือกคู่มือการใช้งานไอเทม & ระบบเสียง",
                             "options": [
                                 {
-                                    "label": ":: ผูกบัญชีตัวละคร (Gamertag)",
+                                    "label": "01 · ผูกบัญชีตัวละคร (Gamertag)",
                                     "value": "guide_link",
-                                    "description": "╰ กดปุ่มสีเขียวด้านล่างเพื่อผูกชื่อ แล้วเข้าเล่นเกมได้ทันที",
-                                    "emoji": { "name": "🔗" }
+                                    "description": "กดปุ่มสีเขียวด้านล่างเพื่อผูกชื่อ แล้วเข้าเล่นเกมได้ทันที"
                                 },
                                 {
-                                    "label": ":: จับคู่ระบบเสียง (เฉพาะแอดมิน)",
+                                    "label": "02 · จับคู่ระบบเสียง (เฉพาะแอดมิน)",
                                     "value": "guide_pair",
-                                    "description": "╰ กดปุ่มกุญแจสีเทาด้านล่าง เพื่อขอรับรหัส 6 หลักไปใส่ในเกม",
-                                    "emoji": { "name": "🔑" }
+                                    "description": "กดปุ่มรหัสแอดมินด้านล่าง เพื่อขอรับรหัส 6 หลักไปใส่ในเกม"
                                 },
                                 {
-                                    "label": ":: วิธีใช้ไอเทมรีโมท (Discord Remote)",
+                                    "label": "03 · วิธีใช้ไอเทมรีโมท (Discord Remote)",
                                     "value": "guide_remote",
-                                    "description": "╰ ถือไอเทมรีโมทกดใช้งาน เพื่อปรับระยะเสียงและเอฟเฟกต์วงแหวน",
-                                    "emoji": { "name": "📱" }
+                                    "description": "ถือไอเทมรีโมทกดใช้งาน เพื่อปรับระยะเสียงและเอฟเฟกต์วงแหวน"
                                 },
                                 {
-                                    "label": ":: วิธีใช้ไอเทมวิทยุสื่อสาร (Walkie-Talkie)",
+                                    "label": "04 · วิธีใช้ไอเทมวิทยุสื่อสาร (Walkie-Talkie)",
                                     "value": "guide_radio",
-                                    "description": "╰ ถือไอเทมวิทยุกดใช้งาน เพื่อเลือกคลื่นช่อง 1 - 5 คุยข้ามมิติ",
-                                    "emoji": { "name": "📻" }
+                                    "description": "ถือไอเทมวิทยุกดใช้งาน เพื่อเลือกคลื่นช่อง 1 - 5 คุยข้ามมิติ"
                                 },
                                 {
-                                    "label": ":: ระบบกำแพงลดทอนเสียง (3D Occlusion)",
+                                    "label": "05 · ระบบกำแพงลดทอนเสียง (3D Occlusion)",
                                     "value": "guide_occlusion",
-                                    "description": "╰ หากมีบล็อกทึบกั้นระดับสายตา เสียงจะทึบลง 40% เพื่อความสมจริง",
-                                    "emoji": { "name": "🧱" }
+                                    "description": "หากมีบล็อกทึบกั้นระดับสายตา เสียงจะทึบลง 40% เพื่อความสมจริง"
                                 },
                                 {
-                                    "label": ":: แก้ปัญหาไมค์ค้าง / เสียงไม่ออก",
+                                    "label": "06 · แก้ปัญหาไมค์ค้าง / เสียงไม่ออก",
                                     "value": "guide_fix_mic",
-                                    "description": "╰ กดปุ่มสีแดงด้านล่าง เพื่อปลดไมค์ของตัวเองได้ทันทีตลอด 24 ชม.",
-                                    "emoji": { "name": "🛠️" }
+                                    "description": "กดปุ่มสีแดงด้านล่าง เพื่อปลดไมค์ของตัวเองได้ทันทีตลอด 24 ชม."
                                 }
                             ]
                         }
@@ -466,29 +543,25 @@ impl Bridge {
                         {
                             "type": 2,
                             "style": 3,
-                            "label": "ผูกบัญชีตัวละคร",
-                            "emoji": { "name": "🔗" },
+                            "label": "ผูกบัญชี",
                             "custom_id": "link_account_modal"
                         },
                         {
                             "type": 2,
                             "style": 1,
-                            "label": "เช็คสถานะของฉัน",
-                            "emoji": { "name": "ℹ️" },
+                            "label": "สถานะ",
                             "custom_id": "check_my_status"
                         },
                         {
                             "type": 2,
                             "style": 4,
-                            "label": "ปลดไมค์ของฉัน",
-                            "emoji": { "name": "📢" },
+                            "label": "ปลดไมค์",
                             "custom_id": "fix_my_mic"
                         },
                         {
                             "type": 2,
                             "style": 2,
-                            "label": "ยกเลิกการผูก",
-                            "emoji": { "name": "❌" },
+                            "label": "ยกเลิกผูก",
                             "custom_id": "unlink_my_account"
                         }
                     ]
@@ -499,8 +572,7 @@ impl Bridge {
                         {
                             "type": 2,
                             "style": 2,
-                            "label": "รับรหัสจับคู่ (เฉพาะแอดมิน)",
-                            "emoji": { "name": "🔑" },
+                            "label": "รหัสแอดมิน",
                             "custom_id": "admin_pair_code"
                         }
                     ]
@@ -543,6 +615,7 @@ impl Bridge {
             .await?;
 
         self.set_lobby_channel_id(lobby_id);
+        self.set_radio_channel_id(radio_id);
         self.set_category_id(cat_id);
 
         save_setup_to_env(cat_id, lobby_id, text_id);

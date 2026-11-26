@@ -25,6 +25,11 @@ pub enum BotCommand {
         player: String,
         ack: oneshot::Sender<bool>,
     },
+    JoinRadio {
+        player: String,
+        join: bool,
+        ack: oneshot::Sender<Result<String, String>>,
+    },
 }
 
 pub struct AppState {
@@ -40,6 +45,10 @@ pub struct AppState {
     pub pair_code: Mutex<Option<(String, Instant)>>,
     /// Layouts handed to the worker but not committed yet.
     in_flight: AtomicUsize,
+    /// รายชื่อผู้เล่น (normalized) ที่กำลังอยู่ในห้องเสียง Discord (รวม Lobby/Zone/Radio)
+    pub in_voice: Mutex<Vec<String>>,
+    /// รายชื่อผู้เล่น (normalized) ที่กำลังอยู่ในห้องวิทยุสาธารณะ
+    pub in_radio: Mutex<Vec<String>>,
 }
 
 impl AppState {
@@ -68,6 +77,8 @@ impl AppState {
             last_update: Mutex::new(None),
             pair_code: Mutex::new(None),
             in_flight: AtomicUsize::new(0),
+            in_voice: Mutex::new(Vec::new()),
+            in_radio: Mutex::new(Vec::new()),
         })
     }
 
