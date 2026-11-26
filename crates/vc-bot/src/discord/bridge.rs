@@ -335,7 +335,8 @@ impl Bridge {
                                 || channel.name.to_lowercase().contains("radio"))
                         {
                             self.set_radio_channel_id(id);
-                            tracing::info!(radio_id = id, name = %channel.name, "ตรวจพบห้องวิทยุสาธารณะอัตโนมัติ");
+                            let _ = self.api.lock_voice_channel(guild, id).await;
+                            tracing::info!(radio_id = id, name = %channel.name, "ตรวจพบห้องวิทยุสาธารณะอัตโนมัติ (ล็อกห้องเฉพาะคนในเกม)");
                         }
                     }
                 }
@@ -611,7 +612,7 @@ impl Bridge {
         let radio_name = "📻 ┃ 📡 คลื่นวิทยุสื่อสาร";
         let radio_id = self
             .api
-            .create_voice_channel_open(guild_id, radio_name, Some(cat_id))
+            .create_voice_channel(guild_id, radio_name, Some(cat_id))
             .await?;
 
         self.set_lobby_channel_id(lobby_id);

@@ -305,6 +305,21 @@ impl DiscordApi {
         Ok(())
     }
 
+    /// ล็อกห้องเสียงไม่ให้ @everyone กดเข้าเองได้ (แสดงรูปแม่กุญแจ 🔒) แต่ยังมองเห็นห้องได้
+    pub async fn lock_voice_channel(&self, guild: u64, channel: u64) -> Result<()> {
+        self.send(
+            reqwest::Method::PUT,
+            &format!("/channels/{channel}/permissions/{guild}"),
+            Some(json!({
+                "type": 0,
+                "allow": VIEW_CHANNEL.to_string(),
+                "deny": CONNECT.to_string()
+            })),
+        )
+        .await?;
+        Ok(())
+    }
+
     pub async fn send_message(&self, channel: u64, payload: Value) -> Result<u64> {
         let value = self
             .send(
