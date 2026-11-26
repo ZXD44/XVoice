@@ -73,7 +73,45 @@ impl EventHandler for Handler {
 
         let cfg = self.bridge.cfg.clone();
         let is_lobby = channel == self.bridge.get_lobby_channel_id();
+        let radio_id = self.bridge.get_radio_channel_id();
+        let is_radio = radio_id > 0 && channel == radio_id;
         let is_zone = self.bridge.channel_is_zone(channel).await;
+
+        // ── Radio Lock ──────────────────────────────────────────────────────────
+        // ห้องวิทยุสาธารณะเปิดเฉพาะผู้เล่นที่กำลังอยู่ในเกม (linked + in_voice)
+        if is_radio {
+            let linked = self.bridge.linked_gamertag(user).await;
+            let allowed = match &linked {
+                None => false,
+                Some(tag) => {
+                    let in_v = self.bridge.state.in_voice.lock().unwrap().clone();
+                    in_v.iter().any(|n| n.eq_ignore_ascii_case(tag))
+                }
+            };
+            if !allowed {
+                let lobby_id = self.bridge.get_lobby_channel_id();
+                tracing::warn!(
+                    user,
+                    gamertag = ?linked,
+                    "ป้องกัน: ผู้ใช้ไม่ได้อยู่ในเกม — ย้ายออกจากห้องวิทยุ"
+                );
+                // ย้ายกลับ Lobby + mute
+                let target = if lobby_id > 0 { Some(lobby_id) } else { None };
+                if let Err(e) = self.bridge.api
+                    .update_member(cfg.guild_id, user, target, Some(true))
+                    .await
+                {
+                    tracing::debug!(%e, user, "kick จากวิทยุไม่สำเร็จ");
+                } else {
+                    self.bridge.set_voice(user, target).await;
+                    self.bridge.set_mute(user, true).await;
+                }
+                // ส่ง DM แจ้งผู้ใช้
+                let _ = self.bridge.api.send_dm(user, "⛔ **ห้องวิทยุสาธารณะ** เปิดเฉพาะผู้เล่นที่กำลังเล่น Minecraft อยู่เท่านั้น\nกรุณาผูกบัญชีและเข้าเล่นเกมก่อน แล้วกดปุ่ม **เข้าห้องวิทยุ** ในเกมได้เลย 📻").await;
+                return;
+            }
+        }
+        // ───────────────────────────────────────────────────────────────────────
 
         if is_lobby && !new.mute {
             if let Err(error) = self
@@ -86,14 +124,14 @@ impl EventHandler for Handler {
             } else {
                 self.bridge.set_mute(user, true).await;
             }
-        } else if is_zone && new.mute {
+        } else if (is_zone || is_radio) && new.mute {
             if let Err(error) = self
                 .bridge
                 .api
                 .set_server_mute(cfg.guild_id, user, false)
                 .await
             {
-                tracing::debug!(%error, user, "unmute ในโซนไม่สำเร็จ");
+                tracing::debug!(%error, user, "unmute ในโซน/วิทยุไม่สำเร็จ");
             } else {
                 self.bridge.set_mute(user, false).await;
             }
@@ -199,24 +237,21 @@ impl EventHandler for Handler {
                     "check_my_status" => {
                         let linked = self.bridge.linked_gamertag(user_id).await;
                         let voice = self.bridge.voice_of(user_id).await;
-                        let gamertag_str = linked.unwrap_or_else(|| "ยังไม่ได้ผูกบัญชี (กดปุ่ม 'ผูกบัญชีตัวละคร')".to_string());
+                        let gamertag_str = linked.unwrap_or_else(|| "ยังไม่ได้ผูกบัญชี (กดปุ่ม 'ผูกบัญชี')".to_string());
                         let voice_str = match voice.channel {
-                            Some(cid) => {
-                                let name = self.bridge.channel_name(cid).await.unwrap_or_else(|| cid.to_string());
-                                format!("ห้อง **{}**", name)
-                            }
+                            Some(cid) => self.bridge.channel_name(cid).await.unwrap_or_else(|| cid.to_string()),
                             None => "ยังไม่ได้เข้าห้องเสียง".to_string(),
                         };
                         let mic_str = if voice.channel.is_none() {
                             "-"
                         } else if voice.mute {
-                            "🔴 ปิดไมค์ (Muted)"
+                            "ปิดไมค์ (Muted)"
                         } else {
-                            "🟢 เปิดไมค์ (Unmuted)"
+                            "เปิดไมค์ (Unmuted)"
                         };
 
                         let reply_text = format!(
-                            "ℹ️ **สถานะระบบเสียงของคุณ**\n> 👤 ตัวละครที่ผูก: **{}**\n> 🔊 สถานะห้องเสียง: {}\n> 🎙️ สถานะไมค์: {}\n\n💡 *หากไมค์ค้างแดงในห้องโซน ให้กดปุ่ม 'ปลดไมค์ของฉัน'*",
+                            "**สถานะระบบเสียงของคุณ**\n> ตัวละครที่ผูก: **{}**\n> ห้องเสียง: **{}**\n> สถานะไมค์: **{}**\n\n*หากไมค์ค้างแดงในห้องโซน ให้กดปุ่ม 'ปลดไมค์'*",
                             gamertag_str, voice_str, mic_str
                         );
                         reply(reply_text, true).await;
@@ -224,9 +259,9 @@ impl EventHandler for Handler {
                     "unlink_my_account" => {
                         let unlinked = self.bridge.unlink_account(user_id).await;
                         if unlinked {
-                            reply("✅ **ยกเลิกการผูกบัญชีเรียบร้อยแล้ว**\nหากต้องการผูกใหม่ สามารถกดปุ่ม 'ผูกบัญชีตัวละคร' ได้ตลอดเวลา".into(), true).await;
+                            reply("**ยกเลิกการผูกบัญชีเรียบร้อยแล้ว**\nหากต้องการผูกใหม่ สามารถกดปุ่ม 'ผูกบัญชี' ได้ตลอดเวลา".into(), true).await;
                         } else {
-                            reply("ℹ️ บัญชี Discord ของคุณยังไม่ได้ผูกกับตัวละครใดๆ".into(), true).await;
+                            reply("บัญชี Discord ของคุณยังไม่ได้ผูกกับตัวละครใดๆ".into(), true).await;
                         }
                     }
                     "fix_my_mic" => {

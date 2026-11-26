@@ -65,6 +65,41 @@ pub async fn command_worker(bridge: Arc<Bridge>, mut rx: mpsc::UnboundedReceiver
                 };
                 let _ = ack.send(ok);
             }
+            BotCommand::JoinRadio { player, join, ack } => {
+                let res = match bridge.find(&player).await {
+                    None => Err("ไม่พบบัญชี Discord ที่ผูกไว้".to_string()),
+                    Some(member) => {
+                        let voice = bridge.voice_of(member.id).await;
+                        if voice.channel.is_none() {
+                            Err("กรุณาเข้าห้องเสียงใน Discord ก่อน".to_string())
+                        } else {
+                            let target = if join {
+                                bridge.get_radio_channel_id()
+                            } else {
+                                bridge.get_lobby_channel_id()
+                            };
+                            if target == 0 {
+                                Err("ยังไม่พบห้องวิทยุหรือ Lobby (พิมพ์ /setup ใน Discord)".to_string())
+                            } else {
+                                let need_mute = !join;
+                                match bridge
+                                    .api
+                                    .update_member(bridge.cfg.guild_id, member.id, Some(target), Some(need_mute))
+                                    .await
+                                {
+                                    Ok(()) => {
+                                        bridge.set_voice(member.id, Some(target)).await;
+                                        bridge.set_mute(member.id, need_mute).await;
+                                        Ok(if join { "เข้าห้องวิทยุสาธารณะแล้ว".to_string() } else { "กลับ Lobby แล้ว".to_string() })
+                                    }
+                                    Err(e) => Err(format!("ย้ายห้องไม่สำเร็จ: {e}")),
+                                }
+                            }
+                        }
+                    }
+                };
+                let _ = ack.send(res);
+            }
         }
     }
 }
@@ -113,6 +148,9 @@ pub async fn dry_run_worker(bridge: Arc<Bridge>, mut rx: mpsc::UnboundedReceiver
             BotCommand::Unmute { ack, .. } => {
                 let _ = ack.send(true);
             }
+            BotCommand::JoinRadio { ack, .. } => {
+                let _ = ack.send(Err("dry-run".to_string()));
+            }
         }
     }
 }
@@ -141,7 +179,8 @@ pub async fn apply_layout(bridge: &Arc<Bridge>, mut layout: Layout) -> Result<()
         }
     }
 
-    // 2. Moves: Atomic channel move + unmute in 1 PATCH request (Skip if already there & unmuted).
+    // 2. Moves: Atomic channel move + unmute in 1 PATCH request (Skip if already there & unmuted, or in Public Radio).
+    let radio_id = bridge.get_radio_channel_id();
     let mut moves: Vec<(u64, u64, String)> = Vec::new();
     for room in &layout.rooms {
         let Slot::Keep(channel) = room.slot else {
@@ -153,6 +192,9 @@ pub async fn apply_layout(bridge: &Arc<Bridge>, mut layout: Layout) -> Result<()
                 continue;
             };
             let voice = bridge.voice_of(found.id).await;
+            if radio_id > 0 && voice.channel == Some(radio_id) {
+                continue;
+            }
             if voice.channel == Some(channel) && !voice.mute {
                 continue;
             }
@@ -199,11 +241,15 @@ pub async fn apply_layout(bridge: &Arc<Bridge>, mut layout: Layout) -> Result<()
     // 3. Lobby returns: Atomic move to lobby + server mute in 1 PATCH request (Skip if already there & muted).
     let lobby = bridge.get_lobby_channel_id();
     if lobby > 0 {
+        // 3a. Players that went offline (planner says to_lobby)
         for player in &layout.to_lobby {
             let Some(found) = bridge.find(player).await else {
                 continue;
             };
             let voice = bridge.voice_of(found.id).await;
+            if radio_id > 0 && voice.channel == Some(radio_id) {
+                continue;
+            }
             if voice.channel == Some(lobby) && voice.mute {
                 continue;
             }
@@ -219,6 +265,38 @@ pub async fn apply_layout(bridge: &Arc<Bridge>, mut layout: Layout) -> Result<()
                         tracing::info!(player, "กลับ Lobby (Mute)");
                     }
                     Err(error) => tracing::warn!(player, %error, "ย้ายกลับ Lobby ไม่สำเร็จ"),
+                }
+            }
+        }
+
+        // 3b. Kick users in radio channel who are no longer in-game
+        if radio_id > 0 {
+            let radio_users: Vec<u64> = bridge
+                .voices
+                .read()
+                .await
+                .iter()
+                .filter(|(_, v)| v.channel == Some(radio_id))
+                .map(|(id, _)| *id)
+                .collect();
+
+            let in_voice_names: Vec<String> = bridge.state.in_voice.lock().unwrap().clone();
+
+            for user_id in radio_users {
+                let linked = bridge.linked_gamertag(user_id).await;
+                let allowed = match &linked {
+                    None => false,
+                    Some(tag) => in_voice_names.iter().any(|n| n.eq_ignore_ascii_case(tag)),
+                };
+                if !allowed {
+                    tracing::warn!(user = user_id, gamertag = ?linked, "ผู้ใช้ในวิทยุออกจากเกมแล้ว — ย้ายกลับ Lobby");
+                    match bridge.api.update_member(guild, user_id, Some(lobby), Some(true)).await {
+                        Ok(()) => {
+                            bridge.set_voice(user_id, Some(lobby)).await;
+                            bridge.set_mute(user_id, true).await;
+                        }
+                        Err(e) => tracing::warn!(user = user_id, %e, "kick จากวิทยุ (offline) ไม่สำเร็จ"),
+                    }
                 }
             }
         }

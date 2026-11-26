@@ -555,4 +555,29 @@ impl DiscordApi {
         )
         .await
     }
+
+    /// ส่งข้อความ DM ให้ผู้ใช้ (สร้าง DM channel ก่อนถ้ายังไม่มี)
+    pub async fn send_dm(&self, user_id: u64, content: &str) -> Result<()> {
+        // 1. Create / fetch DM channel
+        let dm = self
+            .send(
+                reqwest::Method::POST,
+                "/users/@me/channels",
+                Some(json!({ "recipient_id": user_id.to_string() })),
+            )
+            .await?;
+        let dm_channel = dm
+            .get("id")
+            .and_then(|v| v.as_str())
+            .and_then(|s| s.parse::<u64>().ok())
+            .ok_or_else(|| anyhow!("send_dm: ไม่พบ DM channel id"))?;
+        // 2. Send message
+        self.send(
+            reqwest::Method::POST,
+            &format!("/channels/{dm_channel}/messages"),
+            Some(json!({ "content": content })),
+        )
+        .await?;
+        Ok(())
+    }
 }
